@@ -1,8 +1,9 @@
 import sys 
 sys.path.append("..")
 from tf_data_json import parse_peptide
-from check_embedding import spectrum_embedder,sequence_embedder
+from load_model import spectrum_embedder,sequence_embedder
 import glob, os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import json
 from tqdm import tqdm
 import numpy as np
@@ -10,7 +11,18 @@ import tensorflow as tf
 
 AUTOTUNE=tf.data.AUTOTUNE
 
-DB_DIR = './db_miscleav_1'
+import argparse
+
+parser = argparse.ArgumentParser(description='convert')
+parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file')
+
+args = parser.parse_args()
+
+DB_DIR=args.DB_DIR
+BATCH_SIZE=1024
+
+#DB_DIR = './db'
+#DB_DIR = './db_miscleav_1'
 
 peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))
 
@@ -22,7 +34,7 @@ def parse_peptide_(peptide):
 
 peptides = list(map(parse_peptide,tqdm(peptides)))
 
-def get_dataset(peptides,batch_size=4096):
+def get_dataset(peptides,batch_size=BATCH_SIZE):
     output_dtype = [tf.int32]
     ds = tf.data.Dataset.from_tensor_slices(peptides)
     #ds = ds.map(lambda x: tf.numpy_function(lambda x: parse_peptide(x), [x], output_dtype),

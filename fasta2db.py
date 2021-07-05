@@ -1,21 +1,37 @@
 import Bio,gzip
 from Bio import SeqIO
 import pyteomics
-from pyteomics import mass,fasta, parser
+from pyteomics import mass,fasta
+import pyteomics.parser as pyt_parser
 import pandas as pd
 import numpy as np
 import json,os
 from tqdm import tqdm
 
+import argparse
+
+parser = argparse.ArgumentParser(description='convert')
+parser.add_argument('--FASTA_FILE', type=str, help='path to fasta file')
+parser.add_argument('--fasta_type', default='generic', type=str, help='uniprot/ncbi/generic')
+parser.add_argument('--MAX_MISSED_CLEAVAGES', default=1, type=int, help='maximum number of miscleavages')
+parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file')
+
+
+args = parser.parse_args()
+
 MAX_DATABASE_SIZE=100000000
 PEPTIDE_MINIMUM_LENGTH=7
 PEPTIDE_MAXIMUM_LENGTH=42
-MISSED_CLEAVAGES=1
+MAX_MISSED_CLEAVAGES=args.MAX_MISSED_CLEAVAGES
 EMBED=True
 
-FASTA_FILE = 'uniprot_sprot.fasta.gz'
-fasta_type = 'uniprot'
-DB_DIR = './db_miscleav_1'
+FASTA_FILE = args.FASTA_FILE
+fasta_type = args.fasta_type
+DB_DIR = args.DB_DIR
+
+# FASTA_FILE = 'uniprot_sprot.fasta.gz'
+# fasta_type = 'uniprot'
+# DB_DIR = './db_miscleav_1'
 
 if not os.path.exists(DB_DIR):
     os.mkdir(DB_DIR)
@@ -48,9 +64,11 @@ if __name__ == '__main__':
 
     with gzip.open(FASTA_FILE, "rt") as FASTA_FILE:
         for seq_record in tqdm(SeqIO.parse(FASTA_FILE, "fasta")):
-            if fasta_type=='uniprot':
-                
-                
+            if fasta_type=='generic':
+                accesion_id = seq_record.id
+                speciesName = None
+                protName = seq_record.description
+            if fasta_type=='uniprot':               
                 accesion_id = seq_record.id
                 speciesName = seq_record.description.split("OS=")[1].split("OX=")[0]
                 prot = seq_record.description.split("|")[1]
@@ -67,7 +85,7 @@ if __name__ == '__main__':
                 prot = seq_record.description.split("[")[0]
                 protName = " ".join(prot.split(" ")[1:])
             SEQ = str(seq_record.seq)
-            cleaved_peptides = parser.cleave(SEQ, parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MISSED_CLEAVAGES)
+            cleaved_peptides = pyt_parser.cleave(SEQ, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES)
             for peptide in cleaved_peptides:
                 if len(peptide) > PEPTIDE_MAXIMUM_LENGTH or len(peptide) < PEPTIDE_MINIMUM_LENGTH:
                     continue

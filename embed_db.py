@@ -3,7 +3,7 @@ sys.path.append("..")
 from tf_data_json import parse_peptide
 from load_model import spectrum_embedder,sequence_embedder
 import glob, os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import json
 from tqdm import tqdm
 import numpy as np
@@ -19,7 +19,7 @@ parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file'
 args = parser.parse_args()
 
 DB_DIR=args.DB_DIR
-BATCH_SIZE=1024
+BATCH_SIZE=4096
 
 #DB_DIR = './db'
 #DB_DIR = './db_miscleav_1'
@@ -49,7 +49,8 @@ peptides_ds = get_dataset(peptides)
 for p in tqdm(peptides_ds):
     pass
 
-embedded_peptides = sequence_embedder.predict(peptides_ds)
+for _ in tqdm(range(1)):
+    embedded_peptides = sequence_embedder.predict(peptides_ds)
 
 print(len(embedded_peptides))
 

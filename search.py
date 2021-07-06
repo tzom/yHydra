@@ -5,13 +5,16 @@ from tensorflow.python.eager.context import device
 sys.path.append("..")
 import glob, os, json
 import tensorflow as tf
-device = '/GPU:0'
-if True:
+
+if False:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     device = '/CPU:0'
+    use_gpu=False
 else:
+    device = '/GPU:0'
     physical_devices = tf.config.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(physical_devices[0],True)
+    use_gpu=True
 
 
 
@@ -148,7 +151,7 @@ db = db_embedded_peptides
 norm = lambda x : np.sqrt(np.inner(x,x))
 diff = lambda x,y : norm(x-y)
 
-def get_index(DB,k=50,metric='euclidean',method='sklearn',use_gpu=False):
+def get_index(DB,k=50,metric='euclidean',method='sklearn',use_gpu=use_gpu):
     print('indexing...')
     if method=='sklearn':
         if metric=='euclidean':
@@ -197,7 +200,7 @@ print(db.shape)
 k = 50
 
 
-index = get_index(db,k=k,metric='euclidean',method='faiss',use_gpu=False)
+index = get_index(db,k=k,metric='euclidean',method='faiss',use_gpu=use_gpu)
 I = perform_search(query=query,k=k,index=index,method='faiss')
 
 # I = []

@@ -1,0 +1,13 @@
+name: yhydra_env
+channels:
+  - defaults
+  - bioconda
+dependencies:
+  - tensorflow
+  - scikit-learn
+  - biopython
+  - pyteomics
+  - tqdm
+  - pip
+  - pip:
+    - faiss-gpu

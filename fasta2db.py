@@ -15,6 +15,7 @@ parser.add_argument('--FASTA_FILE', type=str, help='path to fasta file')
 parser.add_argument('--fasta_type', default='generic', type=str, help='uniprot/ncbi/generic')
 parser.add_argument('--MAX_MISSED_CLEAVAGES', default=1, type=int, help='maximum number of miscleavages')
 parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file')
+parser.add_argument('--REVERSE_DECOY', default=False, type=bool, help='path to db file')
 
 
 args = parser.parse_args()
@@ -36,17 +37,6 @@ DB_DIR = args.DB_DIR
 if not os.path.exists(DB_DIR):
     os.mkdir(DB_DIR)
 
-def seq_embedder(peptide):
-    dim = 32
-    return np.zeros(dim)
-
-import copy 
-aa_comp = copy.deepcopy(mass.std_aa_comp)
-aa_comp['M'] = aa_comp['M'] + mass.Composition({'O':1})    
-
-def theoretical_peptide_mass(peptide,average=True):
-    return mass.fast_mass(peptide,type='M',average=average,aa_comp=aa_comp)
-
 def add_check_keys_exising(key,dictionary,element):
     if key in dictionary:
         tmp = dictionary[peptide]['proteins']
@@ -63,28 +53,34 @@ if __name__ == '__main__':
     print('Digesting peptides...')
 
     with gzip.open(FASTA_FILE, "rt") as FASTA_FILE:
-        for seq_record in tqdm(SeqIO.parse(FASTA_FILE, "fasta")):
+        if args.REVERSE_DECOY:
+            FASTA_FILE = fasta.decoy_db(FASTA_FILE,decoy_only=True)
+        else:
+            FASTA_FILE = fasta.read(FASTA_FILE)
+        #seqio = SeqIO.parse(FASTA_FILE, "fasta")
+        for seq_record in tqdm(FASTA_FILE):
+            #ID = seq_record.id
+            #HEADER = seq_record.description
+            #SEQ = str(seq_record.seq)
+
+            ID=None
+            HEADER = seq_record[0]
+            SEQ = seq_record[1]
             if fasta_type=='generic':
-                accesion_id = seq_record.id
+                accesion_id = ID
                 speciesName = None
-                protName = seq_record.description
+                protName = HEADER
             if fasta_type=='uniprot':               
-                accesion_id = seq_record.id
-                speciesName = seq_record.description.split("OS=")[1].split("OX=")[0]
-                prot = seq_record.description.split("|")[1]
-                protName = seq_record.description.split("|")[2].split("OX=")[0]
-                # print(seq_record.description)
-                # print(accesion_id)
-                # print(speciesName)
-                # print(prot)
-                # print(protName)
-                # quit()
+                accesion_id = ID
+                speciesName = HEADER.split("OS=")[1].split("OX=")[0]
+                prot = HEADER.split("|")[1]
+                protName = HEADER.split("|")[2].split("OX=")[0]
             elif fasta_type=='ncbi':
-                accesion_id = seq_record.id
-                speciesName = seq_record.description.split("[")[1][:-1]
-                prot = seq_record.description.split("[")[0]
+                accesion_id = ID
+                speciesName = HEADER.split("[")[1][:-1]
+                prot = HEADER.split("[")[0]
                 protName = " ".join(prot.split(" ")[1:])
-            SEQ = str(seq_record.seq)
+            #SEQ = str(seq_record.seq)
             cleaved_peptides = pyt_parser.cleave(SEQ, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES)
             for peptide in cleaved_peptides:
                 if len(peptide) > PEPTIDE_MAXIMUM_LENGTH or len(peptide) < PEPTIDE_MINIMUM_LENGTH:
@@ -116,9 +112,9 @@ if __name__ == '__main__':
     if EMBED:
         print('Embed peptides... ')
         peptides = list(ncbi_peptide_protein.keys())
-        pepmasses = list(map(theoretical_peptide_mass,tqdm(peptides)))
+        #pepmasses = list(map(theoretical_peptide_mass,tqdm(peptides)))
         np.save(os.path.join(DB_DIR,"peptides.npy"),np.array(peptides))
-        np.save(os.path.join(DB_DIR,"pepmasses.npy"),np.array(pepmasses))
+        #np.save(os.path.join(DB_DIR,"pepmasses.npy"),np.array(pepmasses))
         #embeddings = list(map(seq_embedder,tqdm(peptides)))
         print('Done.')
 

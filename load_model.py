@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 loaded_model = tf.keras.models.load_model('./saved_27_06_2021',custom_objects={'metric_acc':lambda x:x})
-loaded_model.summary()
+#loaded_model.summary()
 
 def get_indidividual_embedder(model):
 

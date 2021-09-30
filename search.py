@@ -4,6 +4,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='convert')
 parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file')
+parser.add_argument('--MGF', default=None, type=str, help='path to mgf files')
 parser.add_argument('--JSON_DIR', default='./tmp', type=str, help='path to json files')
 parser.add_argument('--OUTPUT_DIR', default='./output', type=str, help='directory containing search results')
 parser.add_argument('--DEBUG_N', default=None, type=int, help='sample N spectra (fpr debugging)')
@@ -31,15 +32,16 @@ else:
 import random
 from tf_data_json import USIs,parse_json_npy
 from usi_magic import parse_usi
-from tf_data_mgf import MGF
+from tf_data_mgf import MGF,parse_mgf_npy
 from load_model import spectrum_embedder,sequence_embedder
 from proteomics_utils import theoretical_peptide_mass,precursor2peptide_mass
 
 from tqdm import tqdm
 import numpy as np
 import multiprocessing
+from load_config import CONFIG
 
-
+K = CONFIG['K']
 
 AUTOTUNE=tf.data.AUTOTUNE
 
@@ -100,7 +102,7 @@ print('fire up datasets...')
 N = args.DEBUG_N
 #N = 163410
 
-if True:
+if False:
     files = glob.glob(os.path.join(JSON_DIR,'*.json'))
     #files = glob.glob(os.path.join('../../scratch/USI_files/PXD007963/**/','*.json'))
     #files = glob.glob(os.path.join('../../scratch/USI_files/delete_me/PXD003916/Michelle-Experimental-Sample6.mzid_Michelle-Experimental-Sample6.MGF','*.json'))
@@ -114,11 +116,13 @@ if True:
     ds_spectra = ds.map(lambda x,y: x).batch(64)
     ds_peptides = ds.map(lambda x,y: y).batch(256)
 
-if False:
-    file =  "/hpi/fs00/home/tom.altenburg/scratch/crux_mock_search/PXD006118/Run1_U4_2000ng.mgf"
-    ds = MGF([file]).get_dataset().take(N).unbatch()
-    ds_spectra = ds.map(lambda x,y: x).batch(256)
-    ds = MGF([file]).get_dataset().take(N).unbatch()
+if True:
+    from pyteomics import mgf
+    file = args.MGF#"/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/qe2_03132014_11trcRBC-2.mgf"
+    mgf_size = len(mgf.read(file))
+    ds = MGF([file]).get_dataset().take(mgf_size).unbatch()
+    ds_spectra = ds.map(lambda x,y: x).batch(64)
+    ds = MGF([file]).get_dataset().take(mgf_size).unbatch()
     ds_scans = ds.map(lambda x,y: y).batch(1).as_numpy_iterator()
 
 true_peptides = []
@@ -142,24 +146,41 @@ def parse_json_npy_(file_location): return parse_json_npy(file_location,specs=in
 if __name__ == '__main__':
 
     if True:
-        with multiprocessing.Pool(64) as p:
-            print('getting true peptides...')
-            for psm in tqdm(list(p.imap(parse_json_npy_, files,1))):
-            #for psm in tqdm(list(map(lambda file_location: parse_json_npy(file_location,specs=input_specs_npy), files))):
-                if MSMS_OUTPUT_IN_RESULTS:
-                    true_mzs.append(psm['mzs'])
-                    true_intensities.append(psm['intensities'])
-                #charge=psm['charge']
-                precursorMZ=float(psm['precursorMZ'])
-                usi=str(psm['usi'])
-                collection_identifier, run_identifier, index, charge, peptideSequence, positions = parse_usi(usi)
-                true_peptides.append(peptideSequence)
-                true_precursorMZs.append(precursorMZ)
-                true_pepmasses.append(precursor2peptide_mass(precursorMZ,int(charge)))
-                true_charges.append(int(charge))
-                true_ID.append(usi)
+        if args.MGF is None:
+            with multiprocessing.Pool(64) as p:
+                print('getting true peptides...')
+                for psm in tqdm(list(p.imap(parse_json_npy_, files,1))):
+                #for psm in tqdm(list(map(lambda file_location: parse_json_npy(file_location,specs=input_specs_npy), files))):
+                    if MSMS_OUTPUT_IN_RESULTS:
+                        true_mzs.append(psm['mzs'])
+                        true_intensities.append(psm['intensities'])
+                    #charge=psm['charge']
+                    precursorMZ=float(psm['precursorMZ'])
+                    usi=str(psm['usi'])
+                    collection_identifier, run_identifier, index, charge, peptideSequence, positions = parse_usi(usi)
+                    true_peptides.append(peptideSequence)
+                    true_precursorMZs.append(precursorMZ)
+                    true_pepmasses.append(precursor2peptide_mass(precursorMZ,int(charge)))
+                    true_charges.append(int(charge))
+                    true_ID.append(usi)
+        else:
+            with multiprocessing.Pool(64) as p:
+                print('getting true peptides...')
+                for spectrum in tqdm(parse_mgf_npy(file)):
 
-        #theoretical_pepmasses = np.array(list(map(theoretical_peptide_mass,true_peptides)))
+                    if MSMS_OUTPUT_IN_RESULTS:
+                        true_mzs.append(spectrum['mzs'])
+                        true_intensities.append(spectrum['intensities'])
+                    charge=int(spectrum['charge'])
+                    precursorMZ=float(spectrum['precursorMZ'])
+                    scans=int(spectrum['scans'])
+
+                    true_precursorMZs.append(precursorMZ)
+                    true_pepmasses.append(precursor2peptide_mass(precursorMZ,int(charge)))
+                    true_charges.append(int(charge))
+                    true_ID.append(scans)
+                    true_peptides.append('')
+    print(len(true_peptides),len(true_precursorMZs),len(true_pepmasses),len(true_charges),len(true_ID),len(true_mzs),len(true_intensities))
 
     #print(list(zip(true_pepmasses,theoretical_pepmasses)))
     with tf.device(device):
@@ -238,10 +259,10 @@ if __name__ == '__main__':
         db_peptides = np.array(list(true_peptides.values()))
 
     print(db.shape)
-    k = 50
+    #k = 50
 
-    index = get_index(db,k=k,metric='euclidean',method='faiss',use_gpu=use_gpu)
-    D,I = perform_search(query=query,k=k,index=index,method='faiss')
+    index = get_index(db,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
+    D,I = perform_search(query=query,k=K,index=index,method='faiss')
 
 
     ####### SEARCH RESULTS DATAFRAME #######
@@ -253,6 +274,8 @@ if __name__ == '__main__':
 
     if not MSMS_OUTPUT_IN_RESULTS:
         true_mzs,true_intensities = None,None
+
+    print(len(predicted_peptides),len(predicted_distances))
 
     search_results = pd.DataFrame({'id':true_ID,
                                 'precursorMZ':true_precursorMZs,    
@@ -268,7 +291,7 @@ if __name__ == '__main__':
     if not os.path.exists(OUTPUT_DIR):
         os.mkdir(OUTPUT_DIR)
 
-    search_results.to_csv(os.path.join(OUTPUT_DIR,'search_results.csv'),index=False)
+    #search_results.to_csv(os.path.join(OUTPUT_DIR,'search_results.csv'),index=False)
     search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),key='search_results', mode='w')
     exit()
     ####### SEARCH RESULTS DATAFRAME #######

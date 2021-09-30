@@ -6,7 +6,7 @@ from matplotlib_venn import venn2
 from tqdm import tqdm
 from pyteomics import auxiliary as aux
 import os
-
+from load_config import CONFIG
 import argparse
 
 parser = argparse.ArgumentParser(description='convert')
@@ -19,6 +19,10 @@ args = parser.parse_args()
 OUTPUT_DIR = args.OUTPUT_DIR
 REV_OUTPUT_DIR = args.REV_OUTPUT_DIR
 
+FDR = CONFIG['FDR']
+MIN_DELTA_MASS = CONFIG['MIN_DELTA_MASS']
+MAX_DELTA_MASS = CONFIG['MAX_DELTA_MASS']
+
 search_results = pd.read_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
 rev_search_results = pd.read_hdf(os.path.join(REV_OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
 
@@ -26,8 +30,15 @@ search_results['is_decoy'] = False
 rev_search_results['is_decoy'] = True
 
 df = pd.concat([search_results,rev_search_results])
+
+df = df[df.delta_mass<MAX_DELTA_MASS]
+df = df[df.delta_mass>MIN_DELTA_MASS]
+
 df.best_score = -np.log(df.best_score+1.)
-df_filtered = aux.filter(df, key='best_score', is_decoy='is_decoy', fdr=0.01)
+index = df.groupby('id')['best_score'].nlargest(1).reset_index(drop=True).index
+df = df.iloc[index]
+print(df)
+df_filtered = aux.filter(df, key='best_score', is_decoy='is_decoy', fdr=FDR)
 df_filtered = df_filtered[~df_filtered.is_decoy]
 
 print(df_filtered)
@@ -52,4 +63,4 @@ plt.savefig('./figures/hit_score_dist.png',dpi=600)
 
 new_identified = yhydra_ident_peptides - ground_truth_ident_peptides
 print(df_filtered[df_filtered.best_peptide.isin(new_identified)])
-search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored_filtered.h5'),key='search_results_scored_filtered', mode='w')
+df_filtered.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored_filtered.h5'),key='search_results_scored_filtered', mode='w')

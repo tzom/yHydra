@@ -5,9 +5,10 @@ sys.path.append("../pyteomics_snippets")
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
 import numpy as np
+from load_config import CONFIG
 
-embed_dim=64
-MAX_N_FRAGMENTS = 200
+MAX_N_FRAGMENTS = CONFIG['MAX_N_FRAGMENTS']#200
+TOLERANCE_DALTON = CONFIG['TOLERANCE_DALTON']#200
 
 def positional_encoding_tf(positions, d_model):
 
@@ -113,13 +114,13 @@ def baseline_peak_matching(q,k,v):
     v = tf.cast(v,tf.float32)
 
     D = squared_dist(k,q)
-    D = tf.where(D<0.01,1.0,0.0)
+    D = tf.where(D<TOLERANCE_DALTON,1.0,0.0)
 
     indices = tf.argmax(D,axis=-1)
     one_hot = tf.one_hot(indices, tf.shape(D)[-1],axis=-1)
     D *= one_hot
 
-    print(tf.shape(D))
+    #print(tf.shape(D))
     N = tf.reduce_sum(one_hot,(-2,-1))+1  
     #print(N)  
     factorial = tf.math.pow(N,12)
@@ -148,7 +149,23 @@ input_specs_npy = {
 
 def parse_json_npy_(file_location): return parse_json_npy(file_location,specs=input_specs_npy)
 
-from get_fragments_from_sequence import get_fragments_from_sequence
+#from get_fragments_from_sequence import get_fragments_from_sequence
+from pyteomics import mass,parser
+def get_fragments_from_sequence(peptide, types=('b', 'y'), maxcharge=2):
+    """
+    The function generates all possible m/z for fragments of types
+    `types` and of charges from 1 to `maxharge`.
+    """
+    fragmented_peptide = peptide#parser.parse(peptide,split=True)
+    for i,_ in enumerate(fragmented_peptide):
+        for ion_type in types:
+            for charge in range(1, maxcharge):
+                #print(fragmented_peptide[:(i+1)])
+                #print(fragmented_peptide[(i):])
+                if ion_type[0] in 'abc':
+                    yield mass.fast_mass(fragmented_peptide[:(i+1)], ion_type=ion_type, charge=charge)
+                else:
+                    yield mass.fast_mass(fragmented_peptide[i:], ion_type=ion_type, charge=charge)
 
 def calc_ions(x):
     peptideSequence,charge = x 
@@ -211,7 +228,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     N = 640
-    batch_size = 64
+    batch_size = 128
     print('globbing files...')
     files = glob.glob('../../scratch/USI_files/PXD007963/**/*.json')
     np.random.seed(0)
@@ -227,10 +244,10 @@ if __name__ == '__main__':
     true_mzs = []
     true_intensities = []
 
-    p = multiprocessing.Pool(64)
+    p = multiprocessing.Pool(128)
     if True:
         print('getting true peptides...')
-        for psm in tqdm(list(p.imap(parse_json_npy_, files,1))):
+        for psm in tqdm(list(p.map(parse_json_npy_, files))):
             
             true_mzs.append(psm['mzs'])
             true_intensities.append(psm['intensities'])
@@ -246,16 +263,19 @@ if __name__ == '__main__':
 
 
     print('getting ions...')
-    true_theor_ions = list(p.imap(calc_ions,tqdm(true_pep_charge),1))    
-    true_theor_ions = list(batched_list(true_theor_ions,batch_size))    # [n,topk_ions]
+    true_theor_ions = list(p.map(calc_ions,tqdm(true_pep_charge)))    
+    true_theor_ions = list(batched_list(true_theor_ions,1))    # [n,topk_ions]
     
     pos_scores, neg_scores = [],[]
     for i,spectra in enumerate(tqdm(ds.as_numpy_iterator())):
-        true_theor_ions_ = np.array(true_theor_ions[i]) # [topk_ions]
+        true_theor_ions_ = true_theor_ions[i:i+batch_size] # [batch_size,topk_ions]
+        true_theor_ions_ = np.reshape(true_theor_ions_,(batch_size,1,-1)) #[batch_size,topk_ions,MAX_N_FRAGMENTS]
+
         mzs,intensities = spectra[0][:,:,0], spectra[0][:,:,1]
         #mzs = np.expand_dims(mzs,axis=1)
         #intensities = np.expand_dims(intensities,axis=1)
         #true_theor_ions_ = np.expand_dims(true_theor_ions_,axis=1)
+        print(mzs.shape,intensities.shape,true_theor_ions_.shape)
         best_score_index, best_score, pos_score = scoring(mzs=mzs,intensities=intensities,ions=true_theor_ions_)
         _, neg_score, _ = scoring(mzs=mzs,intensities=intensities,ions=np.array(true_theor_ions[10-i-1]))
         pos_scores.extend(best_score)

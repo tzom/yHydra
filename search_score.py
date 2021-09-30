@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas.io.pytables import DataCol
+#from projects.yHydra.embed_db import BATCH_SIZE
 from score import calc_ions, scoring
 import multiprocessing, sys, os
 from tqdm import tqdm
@@ -11,7 +12,7 @@ sys.path.append("../dnovo3")
 from preprocessing import normalize_intensities
 from utils import batched_list,unbatched_list
 from proteomics_utils import theoretical_peptide_mass,trim_peaks_list
-
+from load_config import CONFIG
 import argparse
 
 parser = argparse.ArgumentParser(description='convert')
@@ -25,7 +26,11 @@ OUTPUT_DIR = args.OUTPUT_DIR
 #search_results = pd.read_csv('./search_results.csv')
 search_results = pd.read_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),'search_results')
 
-MAX_N_PEAKS = 500
+MAX_N_PEAKS = CONFIG['MAX_N_PEAKS']#500
+BATCH_SIZE=CONFIG['BATCH_SIZE']#64
+NUMBER_OF_THREADS=CONFIG['NUMBER_OF_THREADS']#64
+K=CONFIG['K']#50
+VERBOSE = False
 
 def trim_peaks_list_(x): 
     mzs, intensities = x
@@ -33,19 +38,18 @@ def trim_peaks_list_(x):
     return trim_peaks_list(mzs, intensities,MAX_N_PEAKS=MAX_N_PEAKS)
 
 if __name__ == '__main__':
-    k = 50
-    batch_size=64
+    
     SUBSET=None
 
     top_peptides = []
     best_scores = []
     all_scores = []
 
-    with multiprocessing.Pool(64) as p:
+    with multiprocessing.Pool(NUMBER_OF_THREADS) as p:
 
         #for i,row in enumerate(search_results.iterrows()):
-        for i in tqdm(range(0,len(search_results[:SUBSET]),batch_size)):     
-            rows = search_results.iloc[i:i+batch_size] # TODO: fix last batch
+        for i in tqdm(range(0,len(search_results[:SUBSET]),BATCH_SIZE)):     
+            rows = search_results.iloc[i:i+BATCH_SIZE] # TODO: fix last batch
             true_peptide = rows['peptide'].to_numpy()
             batched_topk_peptides = rows['topk_peptides'].to_numpy()
             charges = rows['charge'].to_numpy()
@@ -53,18 +57,24 @@ if __name__ == '__main__':
             apparent_batch_size = len(rows)
 
             topk_peptides = np.array(unbatched_list(batched_topk_peptides))           
-            charges_tiled = np.repeat(charges,k)
+            charges_tiled = np.repeat(charges,K)
             topk_peptides_charge = list(zip(topk_peptides,charges_tiled))
-            ions = np.array(list(p.imap(calc_ions,topk_peptides_charge,1)))
-            ions = np.reshape(ions,(apparent_batch_size,k,-1))
+            for _ in range(1):
+                if VERBOSE:
+                    print('calc ions...')
+                ions = list(p.map(calc_ions,topk_peptides_charge))
+                ions = np.reshape(ions,(apparent_batch_size,K,-1))
+                #ions = np.zeros((apparent_batch_size,k,200))
             #print(len(ions))
             #ions = list(batched_list(ions,batch_size))
             #mzs = np.array(rows['mzs'])
             #intensities = np.array(rows['intensities'])
             mzs = rows['mzs'].tolist()
             intensities = rows['intensities'].tolist()
-
-            mzs, intensities = zip(*list(p.imap(trim_peaks_list_,list(zip(mzs,intensities)))))
+            for _ in range(1):
+                if VERBOSE:
+                    print('trim peaks...')
+                mzs, intensities = zip(*list(p.map(trim_peaks_list_,list(zip(mzs,intensities)))))
             #mzs, intensities = list(map(trim_ions,rows['mzs'])),list(map(trim_ions,rows['intensities']))
             #mzs, intensities = np.array(rows['mzs']),np.array(rows['intensities'])
             #mzs, intensities = np.expand_dims(mzs,0), np.expand_dims(intensities,0)
@@ -77,11 +87,14 @@ if __name__ == '__main__':
 
             # print(mzs.shape)
             # print(intensities.shape)
-
-            best_score_index, best_score, pos_score = scoring(mzs, intensities, ions)        
+            for _ in range(1):
+                if VERBOSE:
+                    print('scoring...')
+                best_score_index, best_score, pos_score = scoring(mzs, intensities, ions)        
 
             top_peptide = [batched_topk_peptides[id][b] for id,b in enumerate(best_score_index)]
-            print(sum(top_peptide==true_peptide))
+            if VERBOSE:
+                print(sum(top_peptide==true_peptide))
             #print(sum(top_peptide==true_peptide),top_peptide,true_peptide,best_score)
             # if i > 10:
             #     quit()

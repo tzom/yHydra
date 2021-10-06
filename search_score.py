@@ -1,25 +1,22 @@
+import multiprocessing, sys, os
+import argparse
+parser = argparse.ArgumentParser(description='convert')
+parser.add_argument('--OUTPUT_DIR', default='./output', type=str, help='directory containing search results')
+parser.add_argument('--GPU', default='-1', type=str, help='GPU id')
+args = parser.parse_args()
+os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from pandas.io.pytables import DataCol
-#from projects.yHydra.embed_db import BATCH_SIZE
 from score import calc_ions, scoring
-import multiprocessing, sys, os
 from tqdm import tqdm
-
 sys.path.append("../Neonomicon")
 sys.path.append("../dnovo3")
 from preprocessing import normalize_intensities
 from utils import batched_list,unbatched_list
 from proteomics_utils import theoretical_peptide_mass,trim_peaks_list
 from load_config import CONFIG
-import argparse
-
-parser = argparse.ArgumentParser(description='convert')
-
-parser.add_argument('--OUTPUT_DIR', default='./output', type=str, help='directory containing search results')
-
-args = parser.parse_args()
 
 OUTPUT_DIR = args.OUTPUT_DIR
 
@@ -42,6 +39,7 @@ if __name__ == '__main__':
     SUBSET=None
 
     top_peptides = []
+    top_peptide_is_decoys = []
     best_scores = []
     all_scores = []
 
@@ -93,6 +91,7 @@ if __name__ == '__main__':
                 best_score_index, best_score, pos_score = scoring(mzs, intensities, ions)        
 
             top_peptide = [batched_topk_peptides[id][b] for id,b in enumerate(best_score_index)]
+            top_peptide_is_decoy = [rows['is_decoy'].to_numpy()[id][b] for id,b in enumerate(best_score_index)]
             if VERBOSE:
                 print(sum(top_peptide==true_peptide))
             #print(sum(top_peptide==true_peptide),top_peptide,true_peptide,best_score)
@@ -100,11 +99,13 @@ if __name__ == '__main__':
             #     quit()
 
             top_peptides.extend(top_peptide)
+            top_peptide_is_decoys.extend(top_peptide_is_decoy)
             best_scores.extend(best_score)
             all_scores.extend(np.reshape(pos_score,-1))
 
     search_results = search_results[:SUBSET]
 
+    search_results['best_is_decoy']=top_peptide_is_decoys
     search_results['best_score']=best_scores
     search_results['best_peptide']=top_peptides
     search_results['peptide_mass']= list(map(lambda x: theoretical_peptide_mass(*x),zip(top_peptides,np.zeros_like(top_peptides))))

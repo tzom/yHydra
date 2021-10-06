@@ -12,6 +12,7 @@ search_results = pd.read_hdf('./tmp/forward/search_results_scored_filtered.h5','
 
 print(search_results)
 
+search_results = search_results[abs(search_results['delta_mass'])>0.1]
 
 delta_mass = search_results['delta_mass'].to_numpy()
 
@@ -28,7 +29,7 @@ hist, bin_edges = np.histogram(delta_mass,bins=10000)#np.linspace(start=min(delt
 all_diffs = (bin_edges[:-1]+bin_edges[1:])/2
 all_values = hist
 
-topk= np.argsort(all_values)[::-1][1:6]
+topk= np.argsort(all_values)[::-1][:6]
 
 print(all_diffs[topk],all_values[topk])
 
@@ -38,10 +39,10 @@ ma,st,ba=plt.stem(all_diffs,all_values,basefmt=' ',markerfmt=' ',linefmt='green'
 plt.setp(st, 'linewidth', linewidth)
 #plt.yscale('log')
 plt.xlim(-150,300)
-plt.ylim(0,5000)
+#plt.ylim(0,5000)
 plt.xlabel('mass difference')
 
 for x,y in list(zip(all_diffs[topk],all_values[topk])):
     plt.gca().text(x-2.5, y+20, '%s Da'%np.round(x,2),rotation=70)
-plt.tightlayout()
+plt.tight_layout()
 plt.savefig('./figures/delta_mass_profile',dpi=600)

@@ -4,10 +4,12 @@ import argparse
 
 parser = argparse.ArgumentParser(description='convert')
 parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file')
+parser.add_argument('--DECOY_DB_DIR', default='./DB', type=str, help='path to db file')
 parser.add_argument('--MGF', default=None, type=str, help='path to mgf files')
 parser.add_argument('--JSON_DIR', default='./tmp', type=str, help='path to json files')
 parser.add_argument('--OUTPUT_DIR', default='./output', type=str, help='directory containing search results')
 parser.add_argument('--DEBUG_N', default=None, type=int, help='sample N spectra (fpr debugging)')
+parser.add_argument('--GPU', default='-1', type=str, help='GPU id')
 
 args = parser.parse_args()
 
@@ -15,18 +17,19 @@ from tensorflow.python.eager.context import device
 sys.path.append("../dnovo3")
 sys.path.append("../Neonomicon")
 import glob, os, json
-import tensorflow as tf
 
-if True:
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+if args.GPU == '-1':
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU
+    import tensorflow as tf
     device = '/CPU:0'
-    use_gpu=False
+    use_gpu=False    
 else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU
+    import tensorflow as tf
     device = '/GPU:0'
     physical_devices = tf.config.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(physical_devices[0],True)
     use_gpu=True
-
 
 
 import random
@@ -48,6 +51,7 @@ AUTOTUNE=tf.data.AUTOTUNE
 MSMS_OUTPUT_IN_RESULTS=True
 
 DB_DIR = args.DB_DIR
+DECOY_DB_DIR = args.DECOY_DB_DIR
 #DB_DIR = './db'
 #DB_DIR = './db_miscleav_1'
 #DB_DIR = '../../Neonomicon/PXD007963/db'
@@ -57,6 +61,10 @@ OUTPUT_DIR = args.OUTPUT_DIR
 
 db_embedded_peptides = np.load(os.path.join(DB_DIR,"embedded_peptides.npy"))
 db_peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))
+
+decoy_db_embedded_peptides = np.load(os.path.join(DECOY_DB_DIR,"embedded_peptides.npy"))
+decoy_db_peptides = np.load(os.path.join(DECOY_DB_DIR,"peptides.npy"))
+
 #db_pepmasses = np.load(os.path.join(DB_DIR,"pepmasses.npy"))
 
 #sorted_indices = np.argsort(db_pepmasses)
@@ -200,7 +208,9 @@ if __name__ == '__main__':
 
     #query = embedded_peptides
     query = embedded_spectra
-    db = db_embedded_peptides
+    db = np.concatenate([db_embedded_peptides,decoy_db_embedded_peptides])
+    db_target_decoy_peptides = np.concatenate([db_peptides,decoy_db_peptides])
+    db_is_decoy = np.concatenate([np.zeros(len(db_embedded_peptides),bool),np.ones(len(decoy_db_embedded_peptides),dtype=bool)])
 
 
     #query = append_dim(embedded_peptides,true_pepmasses)
@@ -269,7 +279,8 @@ if __name__ == '__main__':
     ######################################
     import pandas as pd
 
-    predicted_peptides = list(db_peptides[I])
+    is_decoy           =  list(db_is_decoy[I])
+    predicted_peptides = list(db_target_decoy_peptides[I])
     predicted_distances = list(D)
 
     if not MSMS_OUTPUT_IN_RESULTS:
@@ -278,6 +289,7 @@ if __name__ == '__main__':
     print(len(predicted_peptides),len(predicted_distances))
 
     search_results = pd.DataFrame({'id':true_ID,
+                                'is_decoy':is_decoy,
                                 'precursorMZ':true_precursorMZs,    
                                 'pepmass':true_pepmasses,
                                 'charge':true_charges,

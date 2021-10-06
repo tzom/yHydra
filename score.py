@@ -178,7 +178,7 @@ def calc_ions(x):
 
 
 
-def scoring(mzs:np.array, intensities:np.array, ions:list): 
+def scoring(mzs:np.array, intensities:np.array, ions:np.array): 
     q,k,v = ions,mzs,intensities # [batch_size,topk_ions],[batch_size,n_peaks],[batch_size,n_peaks]
     
 

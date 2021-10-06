@@ -1,13 +1,22 @@
-name: yhydra_env
+#name: yhydra_env
+name: yhydra_gpu_env
 channels:
   - defaults
   - bioconda
 dependencies:
-  - tensorflow
+  - python=3.8
+  - cudatoolkit==11.0.221
+  - nvidia::cudnn
+  - pip
+  - pip:
+    - tensorflow-gpu==2.4
+  #  - faiss-gpu
+    - matplotlib-venn
+  #- faiss-gpu
+  - pytorch::faiss-gpu>=1.7
   - scikit-learn
   - biopython
   - pyteomics
   - tqdm
-  - pip
-  - pip:
-    - faiss-gpu
+  - pyyaml
+  - pytables

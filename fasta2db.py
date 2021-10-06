@@ -25,6 +25,7 @@ PEPTIDE_MINIMUM_LENGTH=7
 PEPTIDE_MAXIMUM_LENGTH=42
 MAX_MISSED_CLEAVAGES=args.MAX_MISSED_CLEAVAGES
 EMBED=True
+SAVE_DB_AS_JSON=False
 
 FASTA_FILE = args.FASTA_FILE
 fasta_type = args.fasta_type
@@ -103,11 +104,11 @@ if __name__ == '__main__':
 
     print('Done.')
     print(len(ncbi_peptide_protein))
-
-    import json
-
-    with open(os.path.join(DB_DIR,'db.json'), 'w') as fp:
-        json.dump(ncbi_peptide_protein, fp)
+    if SAVE_DB_AS_JSON:
+        print('saving db as db.json... ')
+        import json
+        with open(os.path.join(DB_DIR,'db.json'), 'w') as fp:
+            json.dump(ncbi_peptide_protein, fp)
 
     if EMBED:
         print('Embed peptides... ')

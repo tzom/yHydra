@@ -34,11 +34,29 @@ def parse_peptide_(peptide):
     peptide = get_sequence_of_indices(peptide)
     return peptide
 
-if __name__ == '__main__':    
+def batched_list(list_of_elements:list,batch_size:int=2):
+  for i in range(0, len(list_of_elements), batch_size):
+      yield list_of_elements[i:i + batch_size]
+
+def p_b_map(function,pool,elements:list,batch_size:int):
+    def do_the_function_on_batch(function,batch):
+      return list(map(function,batch))
+    l = tqdm(batched_list(elements,batch_size))
+    u = list(pool.imap(lambda x: do_the_function_on_batch(function, x),l,1))
+    u = [item for sublist in u for item in sublist]
+    return u
+
+if __name__ == '__main__':
+    import multiprocessing
+
     peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))#[:1000000]
 
-    peptides = list(map(trim_sequence,tqdm(peptides)))
-    peptides = list(map(get_sequence_of_indices,tqdm(peptides)))
+    #peptides = list(map(trim_sequence,tqdm(peptides)))
+    #peptides = list(map(get_sequence_of_indices,tqdm(peptides)))
+
+    with multiprocessing.pool.ThreadPool() as p:
+        peptides = p_b_map(trim_sequence,p,peptides,batch_size=1000)
+        peptides = p_b_map(get_sequence_of_indices,p,peptides,batch_size=1000)
     
     peptides = np.array(peptides,dtype=np.int32)
     print(peptides.shape)

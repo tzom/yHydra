@@ -173,8 +173,8 @@ if __name__ == '__main__':
                     true_ID.append(usi)
         else:
             with multiprocessing.Pool(64) as p:
-                print('getting true peptides...')
-                for spectrum in tqdm(parse_mgf_npy(file)):
+                print('getting scan information...')
+                for i,spectrum in enumerate(tqdm(parse_mgf_npy(file))):
 
                     if MSMS_OUTPUT_IN_RESULTS:
                         true_mzs.append(spectrum['mzs'])
@@ -188,6 +188,8 @@ if __name__ == '__main__':
                     true_charges.append(int(charge))
                     true_ID.append(scans)
                     true_peptides.append('')
+                    # if i>1000-2:
+                    #     break
     print(len(true_peptides),len(true_precursorMZs),len(true_pepmasses),len(true_charges),len(true_ID),len(true_mzs),len(true_intensities))
 
     #print(list(zip(true_pepmasses,theoretical_pepmasses)))
@@ -212,6 +214,33 @@ if __name__ == '__main__':
     db_target_decoy_peptides = np.concatenate([db_peptides,decoy_db_peptides])
     db_is_decoy = np.concatenate([np.zeros(len(db_embedded_peptides),bool),np.ones(len(decoy_db_embedded_peptides),dtype=bool)])
 
+    ####### MASS BUCKETS #######
+    ######################################
+
+    from mass_buckets import bucket_indices, get_peptide_mass, N_BUCKETS,MIN_PEPTIDE_MASS,MAX_PEPTIDE_MASS, add_bucket_adress
+
+    print('calc masses ...')
+    db_pepmasses = np.array(list(map(get_peptide_mass,tqdm(db_target_decoy_peptides))))
+
+    inmassrange_indices =  (db_pepmasses >= MIN_PEPTIDE_MASS) & (db_pepmasses <= MAX_PEPTIDE_MASS)
+    db_pepmasses = db_pepmasses[inmassrange_indices]
+    db_target_decoy_peptides = db_target_decoy_peptides[inmassrange_indices]
+    db = db[inmassrange_indices,:]
+    db_is_decoy = db_is_decoy[inmassrange_indices]
+
+    buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS)
+    print(list(map(len,buckets)))    
+
+    db = add_bucket_adress(db,db_pepmasses,est)
+    
+    embedded_spectra_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est,0)
+
+    embedded_spectra_m1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,-1)
+    embedded_spectra_p1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,+1)
+
+    #query = embedded_spectra
+    ####### MASS BUCKETS #######
+    ######################################
 
     #query = append_dim(embedded_peptides,true_pepmasses)
     #query = append_dim(embedded_spectra,theoretical_pepmasses)
@@ -272,8 +301,18 @@ if __name__ == '__main__':
     #k = 50
 
     index = get_index(db,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
+
+    query = embedded_spectra_0
     D,I = perform_search(query=query,k=K,index=index,method='faiss')
 
+    # D_m1,I_m1 = perform_search(query=embedded_spectra_m1,k=K,index=index,method='faiss')
+    # D_0,I_0 = perform_search(query=embedded_spectra_0,k=K,index=index,method='faiss')
+    # D_p1,I_p1 = perform_search(query=embedded_spectra_p1,k=K,index=index,method='faiss')
+
+    # D=np.concatenate([D_m1,D_0,D_p1],axis=-1)
+    # I=np.concatenate([I_m1,I_0,I_p1],axis=-1)
+
+    print(D.shape,I.shape)
 
     ####### SEARCH RESULTS DATAFRAME #######
     ######################################

@@ -40,67 +40,90 @@ if not os.path.exists(DB_DIR):
 
 def add_check_keys_exising(key,dictionary,element):
     if key in dictionary:
-        tmp = dictionary[peptide]['proteins']
-        tmp.append(element)
+        dictionary[key].add(element)
     else: 
-        dictionary[peptide] = {'proteins':[element]}
-    return dictionary
+        dictionary[key] = set([element])
+    return dictionary   
+
+def cleave_peptide(protein_sequence):
+    return pyt_parser.cleave(protein_sequence, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES)
+
+def digest_seq_record(seq_record):
+    ID=None
+    HEADER = seq_record[0]
+    SEQ = seq_record[1]
+
+    if fasta_type=='generic':
+        accesion_id = ID
+        speciesName = None
+        protName = HEADER
+    if fasta_type=='uniprot':               
+        accesion_id = ID
+        speciesName = HEADER.split("OS=")[1].split("OX=")[0]
+        prot = HEADER.split("|")[1]
+        protName = HEADER.split("|")[2].split("OX=")[0]
+    elif fasta_type=='ncbi':
+        accesion_id = ID
+        speciesName = HEADER.split("[")[1][:-1]
+        prot = HEADER.split("[")[0]
+        protName = " ".join(prot.split(" ")[1:])
+    #SEQ = str(seq_record.seq)
+    
+    cleaved_peptides = cleave_peptide(SEQ)
+
+    LENGTH_CONDITION = lambda x: not (len(x) > PEPTIDE_MAXIMUM_LENGTH or len(x) < PEPTIDE_MINIMUM_LENGTH)
+    cleaved_peptides = list(filter(LENGTH_CONDITION,cleaved_peptides))
+
+    ODD_AMINOACIDS_CONDITION = lambda x: not (len(set(x).intersection(set(['X','U','J','Z','B','O'])))>0)
+    cleaved_peptides = list(filter(ODD_AMINOACIDS_CONDITION,cleaved_peptides))
+
+    accesion_id = HEADER.split()[0]
+    return HEADER, accesion_id, cleaved_peptides
+
+from collections import defaultdict
 
 if __name__ == '__main__':
 
-    ncbi_peptide_protein = {}
+    ncbi_peptide_protein = defaultdict(set)
     ncbi_peptide_meta = {}
+
+    all_peptides = []
+    all_proteins = []
 
     print('Digesting peptides...')
 
-    with gzip.open(FASTA_FILE, "rt") as FASTA_FILE:
-        if args.REVERSE_DECOY:
-            FASTA_FILE = fasta.decoy_db(FASTA_FILE,decoy_only=True)
-        else:
-            FASTA_FILE = fasta.read(FASTA_FILE)
-        #seqio = SeqIO.parse(FASTA_FILE, "fasta")
-        for seq_record in tqdm(FASTA_FILE):
-            #ID = seq_record.id
-            #HEADER = seq_record.description
-            #SEQ = str(seq_record.seq)
+    from multiprocessing.pool import Pool, ThreadPool
 
-            ID=None
-            HEADER = seq_record[0]
-            SEQ = seq_record[1]
-            if fasta_type=='generic':
-                accesion_id = ID
-                speciesName = None
-                protName = HEADER
-            if fasta_type=='uniprot':               
-                accesion_id = ID
-                speciesName = HEADER.split("OS=")[1].split("OX=")[0]
-                prot = HEADER.split("|")[1]
-                protName = HEADER.split("|")[2].split("OX=")[0]
-            elif fasta_type=='ncbi':
-                accesion_id = ID
-                speciesName = HEADER.split("[")[1][:-1]
-                prot = HEADER.split("[")[0]
-                protName = " ".join(prot.split(" ")[1:])
-            #SEQ = str(seq_record.seq)
-            cleaved_peptides = pyt_parser.cleave(SEQ, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES)
-            for peptide in cleaved_peptides:
-                if len(peptide) > PEPTIDE_MAXIMUM_LENGTH or len(peptide) < PEPTIDE_MINIMUM_LENGTH:
-                    continue
+    with Pool() as p, ThreadPool() as tp:
+
+        with gzip.open(FASTA_FILE, "rt") as FASTA_FILE:
+            if args.REVERSE_DECOY:
+                FASTA_FILE = fasta.decoy_db(FASTA_FILE,decoy_only=True)
+            else:
+                FASTA_FILE = fasta.read(FASTA_FILE)
+            #seqio = SeqIO.parse(FASTA_FILE, "fasta")
+            for seq_record in tqdm(p.map(digest_seq_record,FASTA_FILE)):
+                #ID = seq_record.id
+                #HEADER = seq_record.description
+                #SEQ = str(seq_record.seq)
+
+
+                HEADER, accesion_id, cleaved_peptides = seq_record
+
+                list(map(lambda peptide: add_check_keys_exising(peptide,ncbi_peptide_protein,accesion_id),cleaved_peptides))
+
+                # for peptide in cleaved_peptides:
+
+                # #     peptide_protein_entry={'accesion_id':accesion_id,'speciesName':speciesName,'protName':protName}
+
+                #     add_check_keys_exising(peptide,ncbi_peptide_protein,accesion_id)
+
+                if len(ncbi_peptide_protein) > MAX_DATABASE_SIZE:
+                    print('exceeding maximum number of allowd peptides %s'%MAX_DATABASE_SIZE)
+                    break
+
                 
-                # if peptide[-1] not in set(['K','R']):
-                #     print(peptide,SEQ)
-
-
-                if len(set(peptide).intersection(set(['X','U','J','Z','B','O'])))>0:
-                    continue
-
-                peptide_protein_entry={'accesion_id':accesion_id,'speciesName':speciesName,'protName':protName}
-
-                add_check_keys_exising(peptide,ncbi_peptide_protein,peptide_protein_entry)
-
-            if len(ncbi_peptide_protein) > MAX_DATABASE_SIZE:
-                print('exceeding maximum number of allowd peptides %s'%MAX_DATABASE_SIZE)
-                break
+    #ncbi_peptide_protein = dict(zip(all_peptides,all_proteins))        
 
     print('Done.')
     print(len(ncbi_peptide_protein))

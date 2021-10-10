@@ -151,6 +151,14 @@ def parse_json_npy_(file_location): return parse_json_npy(file_location,specs=in
 
 #from get_fragments_from_sequence import get_fragments_from_sequence
 from pyteomics import mass,parser
+
+db = mass.Unimod()
+db.by_title('Carbamidomethyl')['composition']
+
+aa_comp = dict(mass.std_aa_comp)
+aa_comp['ca'] = db.by_title('Carbamidomethyl')['composition']
+aa_comp['C'] = aa_comp['C'] + aa_comp['ca']
+
 def get_fragments_from_sequence(peptide, types=('b', 'y'), maxcharge=2):
     """
     The function generates all possible m/z for fragments of types
@@ -163,9 +171,9 @@ def get_fragments_from_sequence(peptide, types=('b', 'y'), maxcharge=2):
                 #print(fragmented_peptide[:(i+1)])
                 #print(fragmented_peptide[(i):])
                 if ion_type[0] in 'abc':
-                    yield mass.fast_mass(fragmented_peptide[:(i+1)], ion_type=ion_type, charge=charge)
+                    yield mass.fast_mass(fragmented_peptide[:(i+1)], ion_type=ion_type, charge=charge, aa_comp=aa_comp)
                 else:
-                    yield mass.fast_mass(fragmented_peptide[i:], ion_type=ion_type, charge=charge)
+                    yield mass.fast_mass(fragmented_peptide[i:], ion_type=ion_type, charge=charge, aa_comp=aa_comp)
 
 def calc_ions(x):
     peptideSequence,charge = x 

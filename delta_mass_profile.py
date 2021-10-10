@@ -2,7 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-search_results = pd.read_hdf('./tmp/forward/search_results_scored_filtered.h5','search_results_scored_filtered')
+dir = '/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963_search/'
+search_results = pd.read_hdf('%s/forward/search_results_scored_filtered.h5'%dir,'search_results_scored_filtered')
 # search_results = search_results[:10]
 # search_results = search_results.drop(columns=['mzs','intensities'])
 # search_results = search_results.explode(['topk_peptides','topk_distances'])

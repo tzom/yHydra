@@ -54,14 +54,20 @@ if __name__ == '__main__':
             
             apparent_batch_size = len(rows)
 
-            topk_peptides = np.array(unbatched_list(batched_topk_peptides))           
-            charges_tiled = np.repeat(charges,K)
+            topk_peptides = np.array(unbatched_list(batched_topk_peptides))
+
+            # isoforms = list(parser.isoforms(peptideSequence,variable_mods=VARIABLE_MODS)) 
+            # print(isoforms)
+            # for isoform in isoforms:
+            #     isoform = isoform.replace('oxM','m')
+            apparent_K = int(len(topk_peptides)/apparent_batch_size)
+            charges_tiled = np.repeat(charges,apparent_K)
             topk_peptides_charge = list(zip(topk_peptides,charges_tiled))
             for _ in range(1):
                 if VERBOSE:
                     print('calc ions...')
                 ions = list(p.map(calc_ions,topk_peptides_charge))
-                ions = np.reshape(ions,(apparent_batch_size,K,-1))
+                ions = np.reshape(ions,(apparent_batch_size,apparent_K,-1))
                 #ions = np.zeros((apparent_batch_size,k,200))
             #print(len(ions))
             #ions = list(batched_list(ions,batch_size))

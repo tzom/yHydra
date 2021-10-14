@@ -9,6 +9,23 @@ from load_config import CONFIG
 
 MAX_N_FRAGMENTS = CONFIG['MAX_N_FRAGMENTS']#200
 TOLERANCE_DALTON = CONFIG['TOLERANCE_DALTON']#200
+MAX_N_PEAKS = CONFIG['MAX_N_PEAKS']#200
+MIN_MATCHING_PEAKS = CONFIG['MIN_MATCHING_PEAKS']
+
+VARIABLE_MODS = {'ox':'M'}
+VARIABLE_MODS = {}
+
+from pyteomics import mass,cmass,parser
+
+db = mass.Unimod()
+aa_comp = dict(mass.std_aa_comp)
+aa_mass = dict(mass.std_aa_mass)
+
+aa_mass['C'] = aa_mass['C'] + mass.calculate_mass(composition=db.by_title('Carbamidomethyl')['composition'])
+aa_mass['m'] = aa_mass['M'] + mass.calculate_mass(composition=db.by_title('Oxidation')['composition'])
+
+#aa_comp['C'] = aa_comp['C'] + composition=db.by_title('Carbamidomethyl')['composition']
+#aa_comp['ox'] = db.by_title('Oxidation')['composition']
 
 def positional_encoding_tf(positions, d_model):
 
@@ -112,20 +129,29 @@ def baseline_peak_matching(q,k,v):
     q = tf.cast(q,tf.float32)
     k = tf.cast(k,tf.float32)
     v = tf.cast(v,tf.float32)
+    
+    matching_pads = tf.matmul(q,k,transpose_b=True) # Mask for matching pads
+    matching_pads = tf.where(matching_pads==0.0,0.0,1.0) # Mask for matching pads
 
     D = squared_dist(k,q)
-    D = tf.where(D<TOLERANCE_DALTON,1.0,0.0)
+    eps = tf.keras.backend.epsilon()
+    D = tf.where(D<TOLERANCE_DALTON,1./(D+eps),0.0)
+    D *= matching_pads # set to zero, where pads matched
+    D = tf.reduce_max(D, axis=-2, keepdims=True)
+    D = tf.where(D>0.0,1.0,0.0)
 
-    indices = tf.argmax(D,axis=-1)
-    one_hot = tf.one_hot(indices, tf.shape(D)[-1],axis=-1)
-    D *= one_hot
+    N_MATCHES = tf.reduce_sum(D,(-1), keepdims=True)    
+    MIN_MATCH = tf.where(N_MATCHES>float(MIN_MATCHING_PEAKS),N_MATCHES,-1.0)
 
-    #print(tf.shape(D))
-    N = tf.reduce_sum(one_hot,(-2,-1))+1  
-    #print(N)  
-    factorial = tf.math.pow(N,12)
+    D *= MIN_MATCH
+
+    #factorial = tf.squeeze(N_MATCHES)
+    #factorial = tf.math.pow(factorial,12)
+    #factorial = tf.exp(tf.math.lgamma(factorial + 1.0))
+    #factorial = tf.clip_by_value(factorial,0,10.0**30)
+
     output = tf.matmul(D, v) 
-    return output, D, factorial
+    return output, D, None
     
 
 def trim_ions(ions:int,MAX_N_FRAGMENTS):
@@ -150,14 +176,8 @@ input_specs_npy = {
 def parse_json_npy_(file_location): return parse_json_npy(file_location,specs=input_specs_npy)
 
 #from get_fragments_from_sequence import get_fragments_from_sequence
-from pyteomics import mass,parser
 
-db = mass.Unimod()
-aa_mass = dict(mass.std_aa_mass)
-
-aa_mass['C'] = aa_mass['C'] + mass.calculate_mass(composition=db.by_title('Carbamidomethyl')['composition'])
-
-def get_fragments_from_sequence(peptide, types=('b', 'y'), maxcharge=2):
+def get_fragments_from_sequence(peptide, types=('b','y'), maxcharge=2,aa_mass=aa_mass):
     """
     The function generates all possible m/z for fragments of types
     `types` and of charges from 1 to `maxharge`.
@@ -165,17 +185,17 @@ def get_fragments_from_sequence(peptide, types=('b', 'y'), maxcharge=2):
     fragmented_peptide = peptide#parser.parse(peptide,split=True)
     for i,_ in enumerate(fragmented_peptide):
         for ion_type in types:
-            for charge in range(1, maxcharge):
+            for charge in range(1, maxcharge+1):
                 #print(fragmented_peptide[:(i+1)])
                 #print(fragmented_peptide[(i):])
                 if ion_type[0] in 'abc':
-                    yield mass.fast_mass(fragmented_peptide[:(i+1)], ion_type=ion_type, charge=charge, aa_comp=aa_mass)
+                    yield cmass.fast_mass(fragmented_peptide[:(i+1)], ion_type=ion_type, charge=charge, aa_mass=aa_mass)
                 else:
-                    yield mass.fast_mass(fragmented_peptide[i:], ion_type=ion_type, charge=charge, aa_comp=aa_mass)
+                    yield cmass.fast_mass(fragmented_peptide[i:], ion_type=ion_type, charge=charge, aa_mass=aa_mass)
 
 def calc_ions(x):
     peptideSequence,charge = x 
-    ions = np.array(sorted(get_fragments_from_sequence(peptideSequence,maxcharge=int(charge))))
+    ions = np.array(sorted(get_fragments_from_sequence(peptideSequence,maxcharge=int(charge),aa_mass=aa_mass)))
     ions = trim_ions(ions,MAX_N_FRAGMENTS=MAX_N_FRAGMENTS)
     return ions
 
@@ -221,6 +241,16 @@ def scoring(mzs:np.array, intensities:np.array, ions:np.array):
 
     return np.int32(best_score_index), np.float32(best_score), pos_score
 
+
+
+def trim_peaks_list_(x): 
+    from preprocessing import normalize_intensities
+    from utils import batched_list,unbatched_list
+    from proteomics_utils import theoretical_peptide_mass,trim_peaks_list
+    mzs, intensities = x
+    mzs, intensities = mzs, normalize_intensities(intensities)
+    return trim_peaks_list(mzs, intensities,MAX_N_PEAKS=MAX_N_PEAKS)
+
 if __name__ == '__main__':
 
     import glob, os
@@ -254,15 +284,14 @@ if __name__ == '__main__':
     if True:
         print('getting true peptides...')
         for psm in tqdm(list(p.map(parse_json_npy_, files))):
-            
-            true_mzs.append(psm['mzs'])
-            true_intensities.append(psm['intensities'])
             #charge=psm['charge']
             precursorMZ=float(psm['precursorMZ'])
             usi=str(psm['usi'])
-            collection_identifier, run_identifier, index, charge, peptideSequence, positions = parse_usi(usi)
-            
-            true_pep_charge.append([peptideSequence,int(charge)+1])
+            collection_identifier, run_identifier, index, charge, peptideSequence, positions = parse_usi(usi)            
+
+            true_mzs.append(psm['mzs'])
+            true_intensities.append(psm['intensities'])
+            true_pep_charge.append([peptideSequence,int(charge)])
             true_peptides.append(peptideSequence)
             true_pepmasses.append(float(charge)*precursorMZ)
             true_ID.append(usi)
@@ -278,15 +307,24 @@ if __name__ == '__main__':
         true_theor_ions_ = np.reshape(true_theor_ions_,(batch_size,1,-1)) #[batch_size,topk_ions,MAX_N_FRAGMENTS]
 
         mzs,intensities = spectra[0][:,:,0], spectra[0][:,:,1]
+        mzs, intensities = zip(*list(p.map(trim_peaks_list_,list(zip(mzs,intensities)))))
         #mzs = np.expand_dims(mzs,axis=1)
         #intensities = np.expand_dims(intensities,axis=1)
         #true_theor_ions_ = np.expand_dims(true_theor_ions_,axis=1)
-        print(mzs.shape,intensities.shape,true_theor_ions_.shape)
+        #print(mzs.shape,intensities.shape,true_theor_ions_.shape)
         best_score_index, best_score, pos_score = scoring(mzs=mzs,intensities=intensities,ions=true_theor_ions_)
         _, neg_score, _ = scoring(mzs=mzs,intensities=intensities,ions=np.array(true_theor_ions[10-i-1]))
+        if max(np.log(neg_score+1))>3.:
+            index = np.argmax(np.log(neg_score+1))
+            neg_ions = np.array(true_theor_ions[10-i-1])[0]
+            print(neg_ions.shape)
+            _,stemlines,_=plt.stem(mzs[index],intensities[index],linefmt='C0-',markerfmt=' ',basefmt=' ',use_line_collection=True,label='acquired peak')
+            _,stemlines,_=plt.stem(neg_ions,-np.ones_like(neg_ions),linefmt='C0-',markerfmt=' ',basefmt=' ',use_line_collection=True,label='acquired peak')
+            plt.setp(stemlines, 'linewidth', 0.3)
+            plt.savefig('figures/fp_matches.png')
         pos_scores.extend(best_score)
         neg_scores.extend(neg_score)
-    
+    plt.figure()
     plt.hist(np.log(np.reshape(pos_scores,-1)+1),alpha=0.5,bins=50)
     plt.hist(np.log(np.reshape(neg_scores,-1)+1),alpha=0.5,bins=50)
     plt.savefig('figures/wavelet_score_dist.png')

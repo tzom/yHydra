@@ -1,12 +1,13 @@
 
 from sklearn.preprocessing import KBinsDiscretizer
 import numpy as np
+from load_config import CONFIG
 
 DELTA_MASS = 500
-N_BUCKETS = 16
+N_BUCKETS = CONFIG['N_BUCKETS']#12
 SPREAD = 1.
-MIN_PEPTIDE_MASS = 500
-MAX_PEPTIDE_MASS = 5000
+MIN_PEPTIDE_MASS = CONFIG['MIN_PEPTIDE_MASS']#500
+MAX_PEPTIDE_MASS = CONFIG['MAX_PEPTIDE_MASS']#5000
 
 ####### MASS BUCKETS #######
 ######################################
@@ -48,9 +49,9 @@ def add_bucket_adress(embeddings,masses,est,offset=0):
     addresses = addresses.astype(np.float32)
     return np.concatenate([embeddings,addresses],axis=-1)
 
-from pyteomics import mass
+from pyteomics import mass,cmass
 def get_peptide_mass(peptide):
-    return mass.fast_mass(peptide,charge=0) 
+    return cmass.fast_mass(str(peptide),charge=0) 
 
 ####### MASS BUCKETS #######
 ######################################

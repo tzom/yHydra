@@ -15,6 +15,7 @@ from load_model import spectrum_embedder,sequence_embedder
 from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
+from load_config import CONFIG
 
 def get_sequence_of_indices(sequence: list, aa_list: list=list(aa_with_pad)):
     indices = [aa_list.index(aa) for aa in sequence]
@@ -27,7 +28,7 @@ def trim_sequence(sequence:str,MAX_PEPTIDE_LENGTH=MAX_PEPTIDE_LENGTH):
 AUTOTUNE=tf.data.experimental.AUTOTUNE
 
 DB_DIR=args.DB_DIR
-BATCH_SIZE=4*4096
+BATCH_SIZE_PEPTIDES = CONFIG['BATCH_SIZE_PEPTIDES']#4*4096
 
 def parse_peptide_(peptide):
     peptide = trim_sequence(peptide)
@@ -55,13 +56,13 @@ if __name__ == '__main__':
     #peptides = list(map(get_sequence_of_indices,tqdm(peptides)))
 
     with multiprocessing.pool.ThreadPool() as p:
-        peptides = p_b_map(trim_sequence,p,peptides,batch_size=1000)
-        peptides = p_b_map(get_sequence_of_indices,p,peptides,batch_size=1000)
+        peptides = p_b_map(trim_sequence,p,peptides,batch_size=BATCH_SIZE_PEPTIDES)
+        peptides = p_b_map(get_sequence_of_indices,p,peptides,batch_size=BATCH_SIZE_PEPTIDES)
     
     peptides = np.array(peptides,dtype=np.int32)
     print(peptides.shape)
 
-    def get_dataset(peptides,batch_size=BATCH_SIZE):
+    def get_dataset(peptides,batch_size=BATCH_SIZE_PEPTIDES):
         def peptide_generator():
             for i in range(0, len(peptides), batch_size):
                 yield peptides[i:i + batch_size]

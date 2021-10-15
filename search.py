@@ -45,6 +45,9 @@ import multiprocessing
 from load_config import CONFIG
 
 K = CONFIG['K']
+N_BUCKETS_NARROW = CONFIG['N_BUCKETS_NARROW']
+N_BUCKETS_OPEN = CONFIG['N_BUCKETS_OPEN']
+BATCH_SIZE = CONFIG['BATCH_SIZE']
 
 AUTOTUNE=tf.data.AUTOTUNE
 
@@ -129,7 +132,7 @@ if True:
     file = args.MGF#"/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/qe2_03132014_11trcRBC-2.mgf"
     mgf_size = len(mgf.read(file))
     ds = MGF([file]).get_dataset().take(mgf_size).unbatch()
-    ds_spectra = ds.map(lambda x,y: x).batch(64)
+    ds_spectra = ds.map(lambda x,y: x).batch(BATCH_SIZE)
     ds = MGF([file]).get_dataset().take(mgf_size).unbatch()
     ds_scans = ds.map(lambda x,y: y).batch(1).as_numpy_iterator()
 
@@ -217,7 +220,7 @@ if __name__ == '__main__':
     ####### MASS BUCKETS #######
     ######################################
 
-    from mass_buckets import bucket_indices, get_peptide_mass, N_BUCKETS,MIN_PEPTIDE_MASS,MAX_PEPTIDE_MASS, add_bucket_adress
+    from mass_buckets import bucket_indices, get_peptide_mass, MIN_PEPTIDE_MASS, MAX_PEPTIDE_MASS, add_bucket_adress
 
     print('calc masses ...')
     db_pepmasses = np.array(list(map(get_peptide_mass,tqdm(db_target_decoy_peptides))))
@@ -230,7 +233,7 @@ if __name__ == '__main__':
 
     ######################################
     ######### NARROW
-    buckets,est = bucket_indices(db_pepmasses,'uniform',2250)
+    buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
     print(list(map(len,buckets)))    
 
     db_narrow = add_bucket_adress(db,db_pepmasses,est)
@@ -242,7 +245,7 @@ if __name__ == '__main__':
 
     ######################################
     ######### OPEN
-    buckets,est = bucket_indices(db_pepmasses,'uniform',12)
+    buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
     print(list(map(len,buckets)))    
 
     db_open = add_bucket_adress(db,db_pepmasses,est)

@@ -4,7 +4,7 @@ import numpy as np
 from load_config import CONFIG
 
 DELTA_MASS = 500
-N_BUCKETS = CONFIG['N_BUCKETS']#12
+N_BUCKETS_OPEN = CONFIG['N_BUCKETS_OPEN']#12
 SPREAD = 1.
 MIN_PEPTIDE_MASS = CONFIG['MIN_PEPTIDE_MASS']#500
 MAX_PEPTIDE_MASS = CONFIG['MAX_PEPTIDE_MASS']#5000
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     embedded_spectra = np.random.uniform(size=(n,64))
     true_pepmasses = np.random.uniform(size=(n,1))*4000.+500.
 
-    buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS)
+    buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
     print(list(map(len,buckets)))    
 
     db_embedded_peptides = add_bucket_adress(db_embedded_peptides,db_pepmasses,est)

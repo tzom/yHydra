@@ -40,6 +40,7 @@ if __name__ == '__main__':
 
     top_peptides = []
     top_peptide_is_decoys = []
+    top_peptide_distances = []
     best_scores = []
     all_scores = []
 
@@ -98,6 +99,7 @@ if __name__ == '__main__':
 
             top_peptide = [batched_topk_peptides[id][b] for id,b in enumerate(best_score_index)]
             top_peptide_is_decoy = [rows['is_decoy'].to_numpy()[id][b] for id,b in enumerate(best_score_index)]
+            top_peptide_distance = [rows['topk_distances'].to_numpy()[id][b] for id,b in enumerate(best_score_index)]
             if VERBOSE:
                 print(sum(top_peptide==true_peptide))
             #print(sum(top_peptide==true_peptide),top_peptide,true_peptide,best_score)
@@ -106,12 +108,14 @@ if __name__ == '__main__':
 
             top_peptides.extend(top_peptide)
             top_peptide_is_decoys.extend(top_peptide_is_decoy)
+            top_peptide_distances.extend(top_peptide_distance)
             best_scores.extend(best_score)
             all_scores.extend(np.reshape(pos_score,-1))
 
     search_results = search_results[:SUBSET]
 
     search_results['best_is_decoy']=top_peptide_is_decoys
+    search_results['best_distance']=top_peptide_distances
     search_results['best_score']=best_scores
     search_results['best_peptide']=top_peptides
     search_results['peptide_mass']= list(map(lambda x: theoretical_peptide_mass(*x),zip(top_peptides,np.zeros_like(top_peptides))))

@@ -1,0 +1,7 @@
+tensorflow-gpu
+matplotlib-venn
+scikit-learn
+biopython
+pyteomics.cythonize
+tqdm
+pyyaml

@@ -46,6 +46,12 @@ if __name__ == '__main__':
 
     with multiprocessing.Pool(NUMBER_OF_THREADS) as p:
 
+        print('explode...' )
+        tmp = search_results[['topk_peptides','charge']].explode('topk_peptides')
+        peptide_charge = list(zip(tmp.topk_peptides,tmp.charge))
+        ions = list(p.map(calc_ions,tqdm(peptide_charge)))
+        peptide_charge_2_ions = dict(zip(peptide_charge,ions))
+        
         #for i,row in enumerate(search_results.iterrows()):
         for i in tqdm(range(0,len(search_results[:SUBSET]),BATCH_SIZE)):     
             rows = search_results.iloc[i:i+BATCH_SIZE] # TODO: fix last batch
@@ -64,12 +70,16 @@ if __name__ == '__main__':
             apparent_K = int(len(topk_peptides)/apparent_batch_size)
             charges_tiled = np.repeat(charges,apparent_K)
             topk_peptides_charge = list(zip(topk_peptides,charges_tiled))
-            for _ in range(1):
-                if VERBOSE:
-                    print('calc ions...')
-                ions = list(p.map(calc_ions,topk_peptides_charge))
-                ions = np.reshape(ions,(apparent_batch_size,apparent_K,-1))
-                #ions = np.zeros((apparent_batch_size,k,200))
+
+            ions = [peptide_charge_2_ions[key] for key in topk_peptides_charge]
+
+            # for _ in range(1):
+            #     if VERBOSE:
+            #         print('calc ions...')
+            #     ions = list(p.map(calc_ions,topk_peptides_charge))
+            
+            ions = np.reshape(ions,(apparent_batch_size,apparent_K,-1))
+            #ions = np.zeros((apparent_batch_size,k,200))
             #print(len(ions))
             #ions = list(batched_list(ions,batch_size))
             #mzs = np.array(rows['mzs'])

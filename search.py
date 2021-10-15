@@ -228,15 +228,33 @@ if __name__ == '__main__':
     db = db[inmassrange_indices,:]
     db_is_decoy = db_is_decoy[inmassrange_indices]
 
-    buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS)
+    ######################################
+    ######### NARROW
+    buckets,est = bucket_indices(db_pepmasses,'uniform',2250)
     print(list(map(len,buckets)))    
 
-    db = add_bucket_adress(db,db_pepmasses,est)
+    db_narrow = add_bucket_adress(db,db_pepmasses,est)
     
-    embedded_spectra_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est,0)
+    embedded_spectra_narrow = add_bucket_adress(embedded_spectra,true_pepmasses,est,0)
 
-    embedded_spectra_m1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,-1)
-    embedded_spectra_p1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,+1)
+    ######### NARROW
+    ######################################
+
+    ######################################
+    ######### OPEN
+    buckets,est = bucket_indices(db_pepmasses,'uniform',12)
+    print(list(map(len,buckets)))    
+
+    db_open = add_bucket_adress(db,db_pepmasses,est)
+    
+    embedded_spectra_open_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est,0)
+
+    embedded_spectra_open_m1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,-1)
+    embedded_spectra_open_p1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,+1)
+    ######### OPEN
+    ######################################
+
+    ######################################
 
     #query = embedded_spectra
     ####### MASS BUCKETS #######
@@ -298,12 +316,18 @@ if __name__ == '__main__':
         db_peptides = np.array(list(true_peptides.values()))
 
     print(db.shape)
-    #k = 50
 
-    index = get_index(db,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
+    index = get_index(db_narrow,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
+    D_narrow,I_narrow = perform_search(query=embedded_spectra_narrow,k=K,index=index,method='faiss')
 
-    query = embedded_spectra_0
-    D,I = perform_search(query=query,k=K,index=index,method='faiss')
+    index = get_index(db_open,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
+    D_open,I_open = perform_search(query=embedded_spectra_open_0,k=K,index=index,method='faiss')
+
+    D=np.concatenate([D_narrow,D_open],axis=-1)
+    I=np.concatenate([I_narrow,I_open],axis=-1)
+
+    #index = get_index(db,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
+    #D,I = perform_search(query=embedded_spectra,k=K,index=index,method='faiss')
 
     # D_m1,I_m1 = perform_search(query=embedded_spectra_m1,k=K,index=index,method='faiss')
     # D_0,I_0 = perform_search(query=embedded_spectra_0,k=K,index=index,method='faiss')

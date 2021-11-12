@@ -26,6 +26,7 @@ MAX_DATABASE_SIZE=100000000
 PEPTIDE_MINIMUM_LENGTH=CONFIG['PEPTIDE_MINIMUM_LENGTH']#7
 PEPTIDE_MAXIMUM_LENGTH=CONFIG['PEPTIDE_MAXIMUM_LENGTH']#42
 MAX_MISSED_CLEAVAGES=CONFIG['MAX_MISSED_CLEAVAGES']#args.MAX_MISSED_CLEAVAGES
+SEMI_SPECIFIC_CLEAVAGE=CONFIG['SEMI_SPECIFIC_CLEAVAGE']
 EMBED=True
 SAVE_DB_AS_JSON=False
 
@@ -48,7 +49,7 @@ def add_check_keys_exising(key,dictionary,element):
     return dictionary   
 
 def cleave_peptide(protein_sequence):
-    return pyt_parser.cleave(protein_sequence, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES)
+    return pyt_parser.cleave(protein_sequence, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES, semi=SEMI_SPECIFIC_CLEAVAGE)
 
 def digest_seq_record(seq_record):
     ID=None

@@ -236,9 +236,9 @@ if __name__ == '__main__':
     buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
     print(list(map(len,buckets)))    
 
-    db_narrow = add_bucket_adress(db,db_pepmasses,est)
+    db_narrow = add_bucket_adress(db,db_pepmasses,est,N_BUCKETS=N_BUCKETS_NARROW)
     
-    embedded_spectra_narrow = add_bucket_adress(embedded_spectra,true_pepmasses,est,0)
+    embedded_spectra_narrow = add_bucket_adress(embedded_spectra,true_pepmasses,est,0,N_BUCKETS=N_BUCKETS_NARROW)
 
     ######### NARROW
     ######################################
@@ -248,12 +248,12 @@ if __name__ == '__main__':
     buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
     print(list(map(len,buckets)))    
 
-    db_open = add_bucket_adress(db,db_pepmasses,est)
+    db_open = add_bucket_adress(db,db_pepmasses,est,N_BUCKETS=N_BUCKETS_OPEN)
     
-    embedded_spectra_open_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est,0)
+    embedded_spectra_open_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est,0,N_BUCKETS=N_BUCKETS_OPEN)
 
-    embedded_spectra_open_m1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,-1)
-    embedded_spectra_open_p1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,+1)
+    embedded_spectra_open_m1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,-1,N_BUCKETS=N_BUCKETS_OPEN)
+    embedded_spectra_open_p1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,+1,N_BUCKETS=N_BUCKETS_OPEN)
     ######### OPEN
     ######################################
 

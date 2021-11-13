@@ -39,7 +39,7 @@ def get_space(mass,est,buckets):
 def get_inbucket(masses,est):
     return np.squeeze(est.transform(masses)).astype(np.int16)
 
-def add_bucket_adress(embeddings,masses,est,offset=0):
+def add_bucket_adress(embeddings,masses,est,offset=0,N_BUCKETS=None):
     masses = np.reshape(masses,(-1,1))
     addresses = est.transform(masses)+offset
     addresses = np.clip(addresses,0,N_BUCKETS-1)
@@ -99,9 +99,9 @@ if __name__ == '__main__':
     buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
     print(list(map(len,buckets)))    
 
-    db_embedded_peptides = add_bucket_adress(db_embedded_peptides,db_pepmasses,est)
+    db_embedded_peptides = add_bucket_adress(db_embedded_peptides,db_pepmasses,est,N_BUCKETS=N_BUCKETS_OPEN)
 
-    embedded_spectra = add_bucket_adress(embedded_spectra,true_pepmasses,est)
+    embedded_spectra = add_bucket_adress(embedded_spectra,true_pepmasses,est,N_BUCKETS=N_BUCKETS_OPEN)
 
     # db_pepmasses = np.reshape(db_pepmasses,(-1,1))
     # db_addresses = est.transform(db_pepmasses)

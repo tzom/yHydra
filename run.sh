@@ -1,10 +1,10 @@
 #!/bin/bash
 
-source /hpi/fs00/home/tom.altenburg/conda/bin/activate 
-conda activate yhydra_env
-
 # source /hpi/fs00/home/tom.altenburg/conda/bin/activate 
-# conda activate yhydra_gpu_env
+# conda activate yhydra_env
+
+source /hpi/fs00/home/tom.altenburg/conda/bin/activate 
+conda activate yhydra_gpu_env
 
 # source /hpi/fs00/home/tom.altenburg/scratch/powerconda/bin/activate 
 # conda activate yhydra_power9_env
@@ -26,10 +26,11 @@ DECOY_DB_DIR=$DECOY_OUTPUT_DIR'/db_miscleav_1'
 #MGF='/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD003916/raw/Michelle-Experimental-Sample3.mgf'
 
 FASTA='test/SynPCC7002_Cbase.fasta.gz'
-MGF='/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/qe2_03132014_1WT-1.mgf'
+#MGF='/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/qe2_03132014_1WT-1.mgf'
+MGFs=$(ls /hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/*WT-*.mgf)
 DEBUG_N=10000
 
-GPU='-1'
+GPU='0'
 
 echo $FASTA
 echo $OUTPUT_DIR
@@ -47,9 +48,12 @@ python sanitize_db.py --DB_DIR=$DB_DIR --DECOY_DB_DIR=$DECOY_DB_DIR
 python embed_db.py --DB_DIR=$DB_DIR --GPU=$GPU
 python embed_db.py --DB_DIR=$DECOY_DB_DIR --GPU=$GPU
 
-python search.py --DB_DIR=$DB_DIR --DECOY_DB_DIR=$DECOY_DB_DIR --MGF=$MGF --OUTPUT_DIR=$OUTPUT_DIR --GPU=$GPU
+for MGF in $MGFs
+do
+    python search.py --DB_DIR=$DB_DIR --DECOY_DB_DIR=$DECOY_DB_DIR --MGF=$MGF --OUTPUT_DIR=$OUTPUT_DIR --GPU=$GPU
+done
 python search_score.py --OUTPUT_DIR=$OUTPUT_DIR --GPU=$GPU
-python fdr_filter.py --OUTPUT_DIR=$OUTPUT_DIR #
+python fdr_filter.py --OUTPUT_DIR=$OUTPUT_DIR
 
 end=`date +%s`
 

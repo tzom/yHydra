@@ -353,8 +353,10 @@ if __name__ == '__main__':
         true_mzs,true_intensities = None,None
 
     print(len(predicted_peptides),len(predicted_distances))
-
-    search_results = pd.DataFrame({'id':true_ID,
+    raw_file=os.path.splitext(os.path.basename(file))[0]
+    search_results = pd.DataFrame({
+                                'raw_file':raw_file,
+                                'id':true_ID,
                                 'is_decoy':is_decoy,
                                 'precursorMZ':true_precursorMZs,    
                                 'pepmass':true_pepmasses,
@@ -370,7 +372,15 @@ if __name__ == '__main__':
         os.mkdir(OUTPUT_DIR)
 
     #search_results.to_csv(os.path.join(OUTPUT_DIR,'search_results.csv'),index=False)
-    search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),key='search_results', mode='w')
+    #search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),key='search_results', mode='w')
+    with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results.h5')) as store:
+        store.put(raw_file,search_results)
+    # if os.path.exists(os.path.join(OUTPUT_DIR,'search_results.h5')):
+    #     prev=pd.read_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),'search_results')      
+    #     search_results = pd.concat([prev,search_results],ignore_index=True)
+    #     search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),key='search_results', mode='w')
+    # else:
+    #     search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),key='search_results', mode='w')
     exit()
     ####### SEARCH RESULTS DATAFRAME #######
     ######################################

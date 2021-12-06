@@ -22,9 +22,14 @@ REV_OUTPUT_DIR = args.REV_OUTPUT_DIR
 FDR = CONFIG['FDR']
 MIN_DELTA_MASS = CONFIG['MIN_DELTA_MASS']
 MAX_DELTA_MASS = CONFIG['MAX_DELTA_MASS']
+SAVE_DB_AS_JSON = True
 
-search_results = pd.read_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
+#search_results = pd.read_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
 # rev_search_results = pd.read_hdf(os.path.join(REV_OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
+
+with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
+    raw_files = store.keys()
+    search_results = pd.concat([store[key] for key in raw_files[:-1]])
 
 # search_results['is_decoy'] = False
 # rev_search_results['is_decoy'] = True
@@ -40,6 +45,12 @@ df.best_score = -np.log(df.best_score+1.)
 print(df)
 df_filtered = aux.filter(df, key='best_score', is_decoy='best_is_decoy', fdr=FDR)
 df_filtered = df_filtered[~df_filtered.best_is_decoy]
+
+if SAVE_DB_AS_JSON:
+    import json
+    with open(os.path.join(OUTPUT_DIR+'/db_miscleav_1','db.json')) as fp:
+        ncbi_peptide_protein = json.load(fp)
+    df_filtered['accession'] = list(map(lambda x: ncbi_peptide_protein[x],df_filtered.best_peptide))
 
 print(df_filtered)
 print(sum(df_filtered['best_peptide']==df_filtered['peptide'])/len(df_filtered))

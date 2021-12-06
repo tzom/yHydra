@@ -37,7 +37,7 @@ def trim_peaks_list_(x):
 
 if __name__ == '__main__':
     
-    with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results.h5')) as store:
+    with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results.h5')) as store, pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store_out:
         raw_files = store.keys()
         search_results_scored = pd.DataFrame()
         for key in raw_files:
@@ -138,7 +138,7 @@ if __name__ == '__main__':
             search_results['peptide_mass']= list(map(lambda x: theoretical_peptide_mass(*x),zip(top_peptides,np.zeros_like(top_peptides))))
             search_results['delta_mass']=search_results['pepmass'] - search_results['peptide_mass']
 
-            search_results=search_results.drop(columns=['mzs', 'intensities'])
+            #search_results=search_results.drop(columns=['mzs', 'intensities'])
             print(sum(search_results['best_peptide']==search_results['peptide'])/len(search_results))
 
             print(search_results)
@@ -147,8 +147,10 @@ if __name__ == '__main__':
             #search_results.to_csv('search_results_scored.csv',index=False)
             #search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),key='search_results_scored', mode='w')
 
-            search_results_scored = pd.concat([search_results_scored,search_results],ignore_index=True)
-    search_results_scored.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),key='search_results_scored', mode='w')
+            #search_results_scored = pd.concat([search_results_scored,search_results],ignore_index=True)
+        #with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store_out:
+            store_out.put(key,search_results)
+    #search_results_scored.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),key='search_results_scored', mode='w')
 
     plt.hist(np.log(np.squeeze(all_scores)+1.),bins=100)
     plt.hist(np.log(np.squeeze(best_scores)+1.),bins=100)

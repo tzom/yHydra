@@ -27,8 +27,8 @@ PEPTIDE_MINIMUM_LENGTH=CONFIG['PEPTIDE_MINIMUM_LENGTH']#7
 PEPTIDE_MAXIMUM_LENGTH=CONFIG['PEPTIDE_MAXIMUM_LENGTH']#42
 MAX_MISSED_CLEAVAGES=CONFIG['MAX_MISSED_CLEAVAGES']#args.MAX_MISSED_CLEAVAGES
 SEMI_SPECIFIC_CLEAVAGE=CONFIG['SEMI_SPECIFIC_CLEAVAGE']
-EMBED=True
-SAVE_DB_AS_JSON=False
+SAVE=True
+SAVE_DB_AS_JSON=True
 
 FASTA_FILE = args.FASTA_FILE
 fasta_type = args.fasta_type
@@ -133,11 +133,12 @@ if __name__ == '__main__':
     if SAVE_DB_AS_JSON:
         print('saving db as db.json... ')
         import json
+        ncbi_peptide_protein = dict(zip(ncbi_peptide_protein.keys(),list(map(list,ncbi_peptide_protein.values()))))
         with open(os.path.join(DB_DIR,'db.json'), 'w') as fp:
             json.dump(ncbi_peptide_protein, fp)
 
-    if EMBED:
-        print('Embed peptides... ')
+    if SAVE:
+        print('Writing list of peptides... ')
         peptides = list(ncbi_peptide_protein.keys())
         #pepmasses = list(map(theoretical_peptide_mass,tqdm(peptides)))
         np.save(os.path.join(DB_DIR,"peptides.npy"),np.array(peptides))

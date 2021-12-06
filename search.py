@@ -36,6 +36,7 @@ import random
 from tf_data_json import USIs,parse_json_npy
 from usi_magic import parse_usi
 from tf_data_mgf import MGF,parse_mgf_npy
+from tf_data_mgf import normalize_intensities,trim_peaks_list_v2,MAX_N_PEAKS,NORMALIZATION_METHOD
 from load_model import spectrum_embedder,sequence_embedder
 from proteomics_utils import theoretical_peptide_mass,precursor2peptide_mass
 
@@ -48,6 +49,7 @@ K = CONFIG['K']
 N_BUCKETS_NARROW = CONFIG['N_BUCKETS_NARROW']
 N_BUCKETS_OPEN = CONFIG['N_BUCKETS_OPEN']
 BATCH_SIZE = CONFIG['BATCH_SIZE']
+USE_STREAM = CONFIG['USE_STREAM']
 
 AUTOTUNE=tf.data.AUTOTUNE
 
@@ -127,9 +129,17 @@ if False:
     ds_spectra = ds.map(lambda x,y: x).batch(64)
     ds_peptides = ds.map(lambda x,y: y).batch(256)
 
-if True:
+import sys,io
+#file = args.MGF#"/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/qe2_03132014_11trcRBC-2.mgf"
+file = args.MGF
+if USE_STREAM:
+    stream=sys.stdin.buffer.read()
+    stream=io.BytesIO(stream)
+else:
+    stream=file
+
+if False:
     from pyteomics import mgf
-    file = args.MGF#"/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/qe2_03132014_11trcRBC-2.mgf"
     mgf_size = len(mgf.read(file))
     ds = MGF([file]).get_dataset().take(mgf_size).unbatch()
     ds_spectra = ds.map(lambda x,y: x).batch(BATCH_SIZE)
@@ -143,6 +153,7 @@ true_charges = []
 true_ID = []
 true_mzs = []
 true_intensities = []
+preprocessed_spectra = []
 
 input_specs_npy = {
     "mzs": np.float32,
@@ -177,11 +188,19 @@ if __name__ == '__main__':
         else:
             with multiprocessing.Pool(64) as p:
                 print('getting scan information...')
-                for i,spectrum in enumerate(tqdm(parse_mgf_npy(file))):
-
+                for i,spectrum in enumerate(tqdm(parse_mgf_npy(stream))):
+                    mzs = spectrum['mzs']
+                    intensities = spectrum['intensities']
                     if MSMS_OUTPUT_IN_RESULTS:
-                        true_mzs.append(spectrum['mzs'])
-                        true_intensities.append(spectrum['intensities'])
+                        true_mzs.append(mzs)
+                        true_intensities.append(intensities)
+                    mzs = np.array(mzs)
+                    intensities = np.array(intensities)
+                    mzs, intensities = mzs,normalize_intensities(intensities,method=NORMALIZATION_METHOD)
+                    mzs, intensities = trim_peaks_list_v2(mzs, intensities, MAX_N_PEAKS=MAX_N_PEAKS, PAD_N_PEAKS=500)
+                    preprocessed_spectrum = np.stack((mzs, intensities),axis=-1)
+                    preprocessed_spectra.append(preprocessed_spectrum)
+
                     charge=int(spectrum['charge'])
                     precursorMZ=float(spectrum['precursorMZ'])
                     scans=int(spectrum['scans'])
@@ -198,10 +217,12 @@ if __name__ == '__main__':
     #print(list(zip(true_pepmasses,theoretical_pepmasses)))
     with tf.device(device):
         print('embedding spectra...')
-        for _ in tqdm(range(1)):        
-            embedded_spectra = spectrum_embedder.predict(ds_spectra)
+        for _ in tqdm(range(1)): 
+            ds_spectra = np.array(preprocessed_spectra)
+            embedded_spectra = spectrum_embedder.predict(ds_spectra,batch_size=BATCH_SIZE)
             #print('embedding peptides...')
             #embedded_peptides = sequence_embedder.predict(ds_peptides)
+    print(embedded_spectra.shape)
 
     def append_dim(X,new_dim,axis=1):
         return np.concatenate((X, np.expand_dims(new_dim,axis=axis)), axis=axis)

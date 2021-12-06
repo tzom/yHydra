@@ -56,6 +56,7 @@ if __name__ == '__main__':
                 print('explode...' )
                 tmp = search_results[['topk_peptides','charge']].explode('topk_peptides')
                 peptide_charge = list(zip(tmp.topk_peptides,tmp.charge))
+                peptide_charge = list(set(peptide_charge))
                 ions = list(p.map(calc_ions,tqdm(peptide_charge)))
                 peptide_charge_2_ions = dict(zip(peptide_charge,ions))
                 

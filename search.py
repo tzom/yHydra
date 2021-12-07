@@ -246,18 +246,6 @@ if __name__ == '__main__':
                 D,I = index.search(query, k)
                 return D,I
 
-
-
-    if False:
-        with open("/mnt/data/crux_mock_search/comet.psms.json",'r') as f:
-            true_peptides = json.load(f)
-
-        from preprocessing import get_sequence_of_indices,trim_sequence
-        peptide_indices = list(map(lambda x: trim_sequence(get_sequence_of_indices(x),MAX_PEPTIDE_LENGTH=42), true_peptides.values()))
-        peptide_indices = np.reshape(peptide_indices,(-1,42))
-        db = sequence_embedder.predict(peptide_indices,batch_size=4096)
-        db_peptides = np.array(list(true_peptides.values()))
-
     print(db.shape)
 
     index = get_index(db_narrow,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
@@ -324,66 +312,3 @@ if __name__ == '__main__':
     exit()
     ####### SEARCH RESULTS DATAFRAME #######
     ######################################
-
-
-    # I = []
-    # for i,query_i in enumerate(query):
-    #     query_i = np.expand_dims(query_i,0)
-    #     true_pepmass = true_pepmasses[i]
-    #     space = get_space(true_pepmass,est=est,buckets=buckets)
-    #     index = get_index(db[space],k=k,metric='euclidean',method='faiss',use_gpu=False)
-    #     I_i = perform_search(query=query_i,k=k,index=index,method='faiss')
-    #     I_i = space[I_i]
-    #     I.append(I_i)
-    # I = np.array(I)
-    # I = np.reshape(I,(N,k))
-
-    #scans = np.array(list(ds_scans)).flatten()
-
-    k_accuracy=[]
-    identified_peptides = []
-    identified_peptides_in_topk = []
-
-    for i,k50 in tqdm(enumerate(db_peptides[I])):
-        #scan = str(scans[i])
-        #print(i,k50)
-        try: 
-            #identified_peptide = true_peptides[scan]
-            identified_peptide = true_peptides[i]
-            identified_peptides.append(identified_peptide)
-            #print(set(k50))
-            #print(set([true_peptides[scan]]))
-            intersection = set(k50).intersection(set([identified_peptide]))
-            if len(intersection) > 0:
-                identified_peptides_in_topk.append(identified_peptide)
-                k_accuracy.append(1)
-            else:
-                k_accuracy.append(0)
-
-        except:
-            k_accuracy.append(-1)
-            #print("not_identified")
-
-    k_accuracy = np.array(k_accuracy)
-
-    print('accuracy 0:',sum(k_accuracy==0))
-    print('accuracy 1:',sum(k_accuracy==1))
-    print('accuracy-1:',sum(k_accuracy==-1))
-
-    result_peptides_set = set(db_peptides[I].flatten().tolist())
-
-    in_db = set(true_peptides).intersection(set(db_peptides))
-    intersection_all = result_peptides_set.intersection(set(true_peptides))
-    intersection_searched = result_peptides_set.intersection(set(identified_peptides))
-
-
-    print(len(in_db))
-    print(len(intersection_all))
-    print(len(intersection_searched))
-    print(len(set(identified_peptides)))
-    print(len(set(identified_peptides_in_topk)))
-
-    # for i,embedded_peptide in enumerate(query):
-    #     k_neighbours = db_embedded_peptides[I][i].tolist()
-    #     k_neighbours = [tuple(x) for x in k_neighbours]
-    #     print(tuple(embedded_peptide.tolist()) in set(k_neighbours))

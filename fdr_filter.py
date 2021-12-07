@@ -42,7 +42,7 @@ df = df[df.delta_mass>MIN_DELTA_MASS]
 df.best_score = -np.log(df.best_score+1.)
 #index = df.groupby('id')['best_score'].nlargest(1).reset_index(drop=True).index
 #df = df.iloc[index]
-print(df)
+
 df_filtered = aux.filter(df, key='best_score', is_decoy='best_is_decoy', fdr=FDR)
 df_filtered = df_filtered[~df_filtered.best_is_decoy]
 
@@ -52,7 +52,6 @@ if SAVE_DB_AS_JSON:
         ncbi_peptide_protein = json.load(fp)
     df_filtered['accession'] = list(map(lambda x: ncbi_peptide_protein[x],df_filtered.best_peptide))
 
-print(df_filtered)
 print(sum(df_filtered['best_peptide']==df_filtered['peptide'])/len(df_filtered))
 ground_truth_ident_peptides=set(df.peptide.unique())
 yhydra_ident_peptides=set(df_filtered.best_peptide.unique())

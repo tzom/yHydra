@@ -7,15 +7,26 @@ parser.add_argument('--GPU', default='-1', type=str, help='GPU id')
 args = parser.parse_args()
 GPU = args.GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = GPU
-sys.path.append("../dnovo3")
-
-from preprocessing import aa_with_pad, MAX_PEPTIDE_LENGTH
-from load_model import spectrum_embedder,sequence_embedder
-
-from tqdm import tqdm
+#sys.path.append("../dnovo3")
 import numpy as np
+from pyteomics import parser
+aa = parser.std_amino_acids
+non_canonical = ['B','Z','X','J','U']
+pad = '_'
+aa_with_pad = np.concatenate([[pad],aa,non_canonical])    
+len_aa = len(aa_with_pad)
+
+from load_model import spectrum_embedder,sequence_embedder
+from tqdm import tqdm
+
 import tensorflow as tf
 from load_config import CONFIG
+
+AUTOTUNE=tf.data.experimental.AUTOTUNE
+
+DB_DIR=args.DB_DIR
+BATCH_SIZE_PEPTIDES = CONFIG['BATCH_SIZE_PEPTIDES']#4*4096
+MAX_PEPTIDE_LENGTH = CONFIG['PEPTIDE_MAXIMUM_LENGTH']
 
 def get_sequence_of_indices(sequence: list, aa_list: list=list(aa_with_pad)):
     indices = [aa_list.index(aa) for aa in sequence]
@@ -25,10 +36,6 @@ def trim_sequence(sequence:str,MAX_PEPTIDE_LENGTH=MAX_PEPTIDE_LENGTH):
     sequence = sequence.ljust(MAX_PEPTIDE_LENGTH,'_')
     return list(sequence)
 
-AUTOTUNE=tf.data.experimental.AUTOTUNE
-
-DB_DIR=args.DB_DIR
-BATCH_SIZE_PEPTIDES = CONFIG['BATCH_SIZE_PEPTIDES']#4*4096
 
 def parse_peptide_(peptide):
     peptide = trim_sequence(peptide)

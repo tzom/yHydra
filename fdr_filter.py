@@ -48,7 +48,7 @@ df_filtered = df_filtered[~df_filtered.best_is_decoy]
 
 if SAVE_DB_AS_JSON:
     import json
-    with open(os.path.join(OUTPUT_DIR+'/db_miscleav_1','db.json')) as fp:
+    with open(os.path.join(OUTPUT_DIR+'/db','db.json')) as fp:
         ncbi_peptide_protein = json.load(fp)
     df_filtered['accession'] = list(map(lambda x: ncbi_peptide_protein[x],df_filtered.best_peptide))
 

@@ -5,7 +5,7 @@ This code is an implementation of the open search of yHydra as described in our 
 ### Disclaimer:
 
 Specifically, this code-repository implements a GPU-accelerated open search that uses the joint embeddings of yHydra.
-Since this is ongoing research it may not relfect the final performance of yHydra.
+Since this is ongoing research it may not reflect the final performance of yHydra.
 
 ## Getting started
 

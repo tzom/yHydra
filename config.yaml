@@ -1,9 +1,9 @@
 # Input - File Locations
-FASTA: test/fasta/SynPCC7002_Cbase.fasta.gz
-MGFs: test/raw/*WT-*.mgf
+FASTA: example/*.fasta.gz
+RAWs: example/*.raw
 
 # Output - Results directory
-RESULTS_DIR: test/search
+RESULTS_DIR: example/search
 
 # General Parameters
 BATCH_SIZE: 64

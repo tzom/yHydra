@@ -9,13 +9,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from score import calc_ions, scoring
+from score_utils import calc_ions, scoring
 from tqdm import tqdm
-sys.path.append("../Neonomicon")
-sys.path.append("../dnovo3")
-from preprocessing import normalize_intensities
 from utils import batched_list,unbatched_list
-from proteomics_utils import theoretical_peptide_mass,trim_peaks_list
+from proteomics_utils import normalize_intensities,theoretical_peptide_mass,trim_peaks_list
 from load_config import CONFIG
 
 OUTPUT_DIR = args.OUTPUT_DIR

@@ -32,7 +32,7 @@ conda activate yhydra_env
 bash install_thermorawfileparser.sh
 ```
 
-## Run example
+## Run the example
 
 The following commands will download example data (from https://www.ebi.ac.uk/pride/archive/projects/PXD007963) and run the pipeline of yHydra: 
 
@@ -59,7 +59,7 @@ BATCH_SIZE: 64
 ...
 ```
 
-you can run yHydra on specified parameters (**`./config.yaml`**):
+then you can run yHydra using specified parameters (**`./config.yaml`**):
 
 ``` BASH
 bash run.sh config.yaml

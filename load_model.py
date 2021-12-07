@@ -1,7 +1,12 @@
+import os
 import tensorflow as tf
 
+model_dir = './saved_27_06_2021'
 
-loaded_model = tf.keras.models.load_model('./saved_27_06_2021',custom_objects={'metric_acc':lambda x:x})
+if not os.path.exists(model_dir):
+    os.system("tar -xvf %s"%model_dir+'.tar.gz')
+
+loaded_model = tf.keras.models.load_model(model_dir,custom_objects={'metric_acc':lambda x:x})
 #loaded_model.summary()
 
 def get_indidividual_embedder(model):

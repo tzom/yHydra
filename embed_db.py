@@ -9,12 +9,7 @@ GPU = args.GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = GPU
 #sys.path.append("../dnovo3")
 import numpy as np
-from pyteomics import parser
-aa = parser.std_amino_acids
-non_canonical = ['B','Z','X','J','U']
-pad = '_'
-aa_with_pad = np.concatenate([[pad],aa,non_canonical])    
-len_aa = len(aa_with_pad)
+from proteomics_utils import aa_with_pad
 
 from load_model import spectrum_embedder,sequence_embedder
 from tqdm import tqdm

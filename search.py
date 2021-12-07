@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 from tensorflow.python.eager.context import device 
 sys.path.append("../dnovo3")
-sys.path.append("../Neonomicon")
+#sys.path.append("../Neonomicon")
 import glob, os, json
 
 if args.GPU == '-1':
@@ -33,10 +33,10 @@ else:
 
 
 import random
-from tf_data_json import USIs,parse_json_npy
-from usi_magic import parse_usi
-from tf_data_mgf import MGF,parse_mgf_npy
-from tf_data_mgf import normalize_intensities,trim_peaks_list_v2,MAX_N_PEAKS,NORMALIZATION_METHOD
+#from tf_data_json import USIs,parse_json_npy
+#from usi_magic import parse_usi
+from proteomics_utils import parse_mgf_npy
+from proteomics_utils import normalize_intensities,trim_peaks_list_v2,MAX_N_PEAKS,NORMALIZATION_METHOD
 from load_model import spectrum_embedder,sequence_embedder
 from proteomics_utils import theoretical_peptide_mass,precursor2peptide_mass
 
@@ -70,64 +70,11 @@ db_peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))
 decoy_db_embedded_peptides = np.load(os.path.join(DECOY_DB_DIR,"embedded_peptides.npy"))
 decoy_db_peptides = np.load(os.path.join(DECOY_DB_DIR,"peptides.npy"))
 
-#db_pepmasses = np.load(os.path.join(DB_DIR,"pepmasses.npy"))
-
-#sorted_indices = np.argsort(db_pepmasses)
-
-#db_embedded_peptides=db_embedded_peptides[sorted_indices]
-#db_peptides=db_peptides[sorted_indices]
-#db_pepmasses=db_pepmasses[sorted_indices]
-
-DELTA_MASS = 200
-
-if False:
-    ####### MASS BUCKETS #######
-    ######################################
-    def bucket_indices(X,n_buckets=10):
-        from sklearn.preprocessing import KBinsDiscretizer
-        est = KBinsDiscretizer(n_bins=n_buckets, encode='ordinal', strategy='quantile')
-        masses = np.expand_dims(X,axis=-1)
-        mass_bucket_indices = np.squeeze(est.fit_transform(masses))
-        #in_bucket_indices = mass_bucket_indices==bucket
-        buckets = [np.arange(X.shape[0])[mass_bucket_indices==bucket] for bucket in range(n_buckets)]
-        #print(np.bincount(mass_bucket_indices.astype(np.int32)))
-        #print(est.bin_edges_)
-        return buckets,est
-
-    def get_lowest_highest_bucket(est,mass,delta_mass=DELTA_MASS):
-        lowest,highest = np.squeeze(est.transform(np.expand_dims([mass-delta_mass,mass+delta_mass],axis=-1)))
-        return int(lowest),int(highest)
-
-    def get_space(mass,est,buckets):
-        lowest, highest = get_lowest_highest_bucket(est,mass=mass)
-        space = np.concatenate(buckets[lowest:highest+1])
-        return space
-
-    buckets,est = bucket_indices(db_pepmasses,100)
-
-    space = get_space(mass=4014.23,est=est,buckets=buckets)
-
-    ####### MASS BUCKETS #######
-    ######################################
 
 print('fire up datasets...')
 #N = None
 N = args.DEBUG_N
 #N = 163410
-
-if False:
-    files = glob.glob(os.path.join(JSON_DIR,'*.json'))
-    #files = glob.glob(os.path.join('../../scratch/USI_files/PXD007963/**/','*.json'))
-    #files = glob.glob(os.path.join('../../scratch/USI_files/delete_me/PXD003916/Michelle-Experimental-Sample6.mzid_Michelle-Experimental-Sample6.MGF','*.json'))
-    #files = glob.glob(os.path.join('../../Neonomicon/files/test/**/','*.json'))
-    #files = glob.glob(os.path.join('../../Neonomicon/dump','*.json'))
-    random.seed(0)
-    random.shuffle(files)
-    files = files[:N]
-
-    ds = USIs(files,batch_size=1,buffer_size=1).get_dataset().unbatch()
-    ds_spectra = ds.map(lambda x,y: x).batch(64)
-    ds_peptides = ds.map(lambda x,y: y).batch(256)
 
 import sys,io
 #file = args.MGF#"/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/qe2_03132014_11trcRBC-2.mgf"
@@ -137,14 +84,6 @@ if USE_STREAM:
     stream=io.BytesIO(stream)
 else:
     stream=file
-
-if False:
-    from pyteomics import mgf
-    mgf_size = len(mgf.read(file))
-    ds = MGF([file]).get_dataset().take(mgf_size).unbatch()
-    ds_spectra = ds.map(lambda x,y: x).batch(BATCH_SIZE)
-    ds = MGF([file]).get_dataset().take(mgf_size).unbatch()
-    ds_scans = ds.map(lambda x,y: y).batch(1).as_numpy_iterator()
 
 true_peptides = []
 true_precursorMZs = []
@@ -167,51 +106,33 @@ def parse_json_npy_(file_location): return parse_json_npy(file_location,specs=in
 
 if __name__ == '__main__':
 
-    if True:
-        if args.MGF is None:
-            with multiprocessing.Pool(64) as p:
-                print('getting true peptides...')
-                for psm in tqdm(list(p.imap(parse_json_npy_, files,1))):
-                #for psm in tqdm(list(map(lambda file_location: parse_json_npy(file_location,specs=input_specs_npy), files))):
-                    if MSMS_OUTPUT_IN_RESULTS:
-                        true_mzs.append(psm['mzs'])
-                        true_intensities.append(psm['intensities'])
-                    #charge=psm['charge']
-                    precursorMZ=float(psm['precursorMZ'])
-                    usi=str(psm['usi'])
-                    collection_identifier, run_identifier, index, charge, peptideSequence, positions = parse_usi(usi)
-                    true_peptides.append(peptideSequence)
-                    true_precursorMZs.append(precursorMZ)
-                    true_pepmasses.append(precursor2peptide_mass(precursorMZ,int(charge)))
-                    true_charges.append(int(charge))
-                    true_ID.append(usi)
-        else:
-            with multiprocessing.Pool(64) as p:
-                print('getting scan information...')
-                for i,spectrum in enumerate(tqdm(parse_mgf_npy(stream))):
-                    mzs = spectrum['mzs']
-                    intensities = spectrum['intensities']
-                    if MSMS_OUTPUT_IN_RESULTS:
-                        true_mzs.append(mzs)
-                        true_intensities.append(intensities)
-                    mzs = np.array(mzs)
-                    intensities = np.array(intensities)
-                    mzs, intensities = mzs,normalize_intensities(intensities,method=NORMALIZATION_METHOD)
-                    mzs, intensities = trim_peaks_list_v2(mzs, intensities, MAX_N_PEAKS=MAX_N_PEAKS, PAD_N_PEAKS=500)
-                    preprocessed_spectrum = np.stack((mzs, intensities),axis=-1)
-                    preprocessed_spectra.append(preprocessed_spectrum)
 
-                    charge=int(spectrum['charge'])
-                    precursorMZ=float(spectrum['precursorMZ'])
-                    scans=int(spectrum['scans'])
+    with multiprocessing.Pool(64) as p:
+        print('getting scan information...')
+        for i,spectrum in enumerate(tqdm(parse_mgf_npy(stream))):
+            mzs = spectrum['mzs']
+            intensities = spectrum['intensities']
+            if MSMS_OUTPUT_IN_RESULTS:
+                true_mzs.append(mzs)
+                true_intensities.append(intensities)
+            mzs = np.array(mzs)
+            intensities = np.array(intensities)
+            #mzs, intensities = mzs,normalize_intensities(intensities,method=NORMALIZATION_METHOD)
+            #mzs, intensities = trim_peaks_list_v2(mzs, intensities, MAX_N_PEAKS=MAX_N_PEAKS, PAD_N_PEAKS=500)
+            preprocessed_spectrum = np.stack((mzs, intensities),axis=-1)
+            preprocessed_spectra.append(preprocessed_spectrum)
 
-                    true_precursorMZs.append(precursorMZ)
-                    true_pepmasses.append(precursor2peptide_mass(precursorMZ,int(charge)))
-                    true_charges.append(int(charge))
-                    true_ID.append(scans)
-                    true_peptides.append('')
-                    # if i>1000-2:
-                    #     break
+            charge=int(spectrum['charge'])
+            precursorMZ=float(spectrum['precursorMZ'])
+            scans=int(spectrum['scans'])
+
+            true_precursorMZs.append(precursorMZ)
+            true_pepmasses.append(precursor2peptide_mass(precursorMZ,int(charge)))
+            true_charges.append(int(charge))
+            true_ID.append(scans)
+            true_peptides.append('')
+            # if i>1000-2:
+            #     break
     print(len(true_peptides),len(true_precursorMZs),len(true_pepmasses),len(true_charges),len(true_ID),len(true_mzs),len(true_intensities))
 
     #print(list(zip(true_pepmasses,theoretical_pepmasses)))
@@ -255,7 +176,6 @@ if __name__ == '__main__':
     ######################################
     ######### NARROW
     buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
-    print(list(map(len,buckets)))    
 
     db_narrow = add_bucket_adress(db,db_pepmasses,est,N_BUCKETS=N_BUCKETS_NARROW)
     
@@ -267,7 +187,6 @@ if __name__ == '__main__':
     ######################################
     ######### OPEN
     buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
-    print(list(map(len,buckets)))    
 
     db_open = add_bucket_adress(db,db_pepmasses,est,N_BUCKETS=N_BUCKETS_OPEN)
     

@@ -19,14 +19,14 @@ Since this is ongoing research it may not reflect the final performance of yHydr
 
 Start by cloning this github-repository:
 
-```
+``` BASH
 git clone https://github.com/tzom/yHydra
 cd yHydra
 ```
 
 To install the required packages create a new conda environment (required packages are automatically installed when using **`yhydra_env.yml`**):
 
-```
+``` BASH
 conda env create -f yhydra_env.yml
 conda activate yhydra_env
 bash install_thermorawfileparser.sh
@@ -36,7 +36,7 @@ bash install_thermorawfileparser.sh
 
 The following commands will download example data (from https://www.ebi.ac.uk/pride/archive/projects/PXD007963) and run the pipeline of yHydra: 
 
-```
+``` BASH
 mkdir example
 wget -nc -i example_data_urls.txt -P example/
 bash run.sh config.yaml
@@ -61,7 +61,7 @@ BATCH_SIZE: 64
 
 you can run yHydra on specified parameters (**`./config.yaml`**):
 
-```
+``` BASH
 bash run.sh config.yaml
 ```
 

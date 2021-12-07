@@ -59,19 +59,4 @@ yhydra_ident_peptides=set(df_filtered.best_peptide.unique())
 print('Identified peptides (true):',len(ground_truth_ident_peptides))
 print('Identified peptides (yHydra):',len(yhydra_ident_peptides))
 
-plt.figure(figsize=(7,3))
-plt.subplot(1,2,1)
-plt.hist(np.log(np.squeeze(search_results[~search_results.best_is_decoy]['best_score'])+1.),bins=100,label='targets',alpha=0.3)
-plt.hist(np.log(np.squeeze(search_results[search_results.best_is_decoy]['best_score'])+1.),bins=100,label='decoys',alpha=0.3)
-plt.xlabel('yHydra log score')
-#plt.yscale('log')
-plt.legend()
- 
-plt.subplot(1,2,2)
-venn2([ground_truth_ident_peptides,yhydra_ident_peptides],set_labels=['Ground Truth','yHydra'])
-plt.tight_layout()
-plt.savefig('./figures/hit_score_dist.png',dpi=600)
-
-new_identified = yhydra_ident_peptides - ground_truth_ident_peptides
-print(df_filtered[df_filtered.best_peptide.isin(new_identified)])
 df_filtered.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored_filtered.h5'),key='search_results_scored_filtered', mode='w')

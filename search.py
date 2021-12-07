@@ -309,6 +309,5 @@ if __name__ == '__main__':
     #     search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),key='search_results', mode='w')
     # else:
     #     search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),key='search_results', mode='w')
-    exit()
     ####### SEARCH RESULTS DATAFRAME #######
     ######################################

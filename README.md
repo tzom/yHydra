@@ -4,7 +4,8 @@ This code is an implementation of the open search of yHydra as described in our 
 
 ### Disclaimer:
 
-Specifically, this code-repository implements a GPU-accelerated open search that uses the joint embeddings of yHydra.
+This code-repository implements a GPU-accelerated open search that uses the joint embeddings of yHydra.
+Note, this repository contains trained models of yHydra and the yHydra training pipeline will be available soon.
 Since this is ongoing research it may not reflect the final performance of yHydra.
 
 ## Getting started

@@ -45,7 +45,7 @@ bash run.sh config.yaml
 
 ## Run yHydra
 
-To run yHydra specify the location of input files in **`./config.yaml`** by replacing the example directory:
+To run yHydra specify the location of input files in **`./config.yaml`**:
 
 ``` YAML
 # Input - File Locations

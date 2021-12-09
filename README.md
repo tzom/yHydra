@@ -67,7 +67,29 @@ bash run.sh config.yaml
 
 ## Inspect search results
 
+The search results are dumped as dataframe in .hdf-files (e.g. locations is specified as **`RESULTS_DIR: example/search`** in the **`./config.yaml`**), in order to get a glimpse of identfications, you can run this:
 
+```
+python inspect_search.py
+```
+
+which gives you the following output:
+
+```  BASH
+(yhydra_env) tom.altenburg@node:~/$ python inspect_search.py 
+                  raw_file     id  precursorMZ      pepmass  charge  ...           best_peptide peptide_mass delta_mass         q           accession
+0       qe2_03132014_1WT-1  13677   699.032500  2094.074025       3  ...  ADTAGVHGAALGADEIELTRK  2094.070485   0.003540  0.000000  [SYNPCC7002_A1022]
+1      qe2_03132014_13WT-3  17071   900.941528  1799.867407       2  ...      DIVTQFHGAEAAVDAEK  1799.868945  -0.001538  0.000000  [SYNPCC7002_A1609]
+2       qe2_03132014_1WT-1  20532   925.985352  1849.955053       2  ...     TLIEGLDEISHGGLPSGR  1849.953345   0.001708  0.000000  [SYNPCC7002_A0287]
+3       qe2_03132014_1WT-1  17209   900.942505  1799.869360       2  ...      DIVTQFHGAEAAVDAEK  1799.868945   0.000415  0.000000  [SYNPCC7002_A1609]
+4      qe2_03132014_13WT-3  18497   779.408800  2335.202925       3  ...  SIEAEQLKDDLPTIHVGDTVR  2335.201905   0.001020  0.000000  [SYNPCC7002_A1033]
+...                    ...    ...          ...          ...     ...  ...                    ...          ...        ...       ...                 ...
+15738  qe2_03132014_13WT-3  18299   473.229095   944.442541       2  ...                MFDIFTR   928.447665  15.994876  0.009911  [SYNPCC7002_A2209]
+15739  qe2_03132014_13WT-3  12375   608.333801  1214.651952       2  ...            NVADEVIKEAK  1214.650635   0.001318  0.009911  [SYNPCC7002_A0341]
+15740   qe2_03132014_1WT-1   8078   474.262451   946.509252       2  ...              IAETLTGSR   946.508345   0.000908  0.009973  [SYNPCC7002_A1930]
+15741  qe2_03132014_13WT-3   7441   337.198120  1008.570885       3  ...              LLGHTEIAR  1008.571605  -0.000719  0.009973  [SYNPCC7002_A0246]
+15742  qe2_03132014_13WT-3  17280   473.229431   944.443212       2  ...                MFDIFTR   928.447665  15.995548  0.009973  [SYNPCC7002_A2209]
+```
 
 ## Author
 

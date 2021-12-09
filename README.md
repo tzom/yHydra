@@ -16,7 +16,7 @@ Since this is ongoing research it may not reflect the final performance of yHydr
 - a GPU machine with latest CUDA installed
 - (CPU-only is possible but will result in poor performance)
 
-**Note:** installation of required packages takes **up to several minutes** and any individual step (on the provided examples) takes less than one minute.
+**Note:** installation of required packages takes **up to several minutes**.
 
 Start by cloning this github-repository:
 

@@ -19,4 +19,4 @@ dependencies:
   - tqdm
   - pyyaml
   - pytables
-  - mono-complete
+  - conda-forge::mono

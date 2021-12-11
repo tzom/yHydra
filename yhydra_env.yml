@@ -11,11 +11,12 @@ dependencies:
   - pip:
     - tensorflow-gpu==2.4
     - matplotlib-venn
+    - pyteomics.cythonize
     - yq
   - pytorch::faiss-gpu>=1.7
   - scikit-learn
   - biopython
-  - pyteomics
+  #- pyteomics
   - tqdm
   - pyyaml
   - pytables

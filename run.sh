@@ -4,7 +4,9 @@ CONFIG="$1"
 #conda activate yhydra_env
 
 #source /hpi/fs00/home/tom.altenburg/conda/bin/activate 
-conda activate yhydra_gpu
+#conda activate yhydra_gpu
+
+conda activate yhydra_env
 
 RESULTS_DIR=$(cat $CONFIG | yq -r .RESULTS_DIR)
 

@@ -29,7 +29,7 @@ SAVE_DB_AS_JSON = True
 
 with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
     raw_files = store.keys()
-    search_results = pd.concat([store[key] for key in raw_files[:-1]])
+    search_results = pd.concat([store[key] for key in raw_files])
 
 # search_results['is_decoy'] = False
 # rev_search_results['is_decoy'] = True

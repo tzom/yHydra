@@ -9,6 +9,8 @@ CONFIG="$1"
 source activate
 conda activate yhydra_env
 
+export YHYDRA_CONFIG=$CONFIG
+
 RESULTS_DIR=$(cat $CONFIG | yq -r .RESULTS_DIR)
 
 OUTPUT_DIR=$RESULTS_DIR'/forward'

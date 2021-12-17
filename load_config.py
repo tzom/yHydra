@@ -1,5 +1,6 @@
-import yaml
-#import io
+import os, yaml
+
+YAML = os.environ.get('YHYDRA_CONFIG')
 
 if False:
     # Define data
@@ -9,9 +10,9 @@ if False:
     }
 
     # Write YAML file
-    with io.open('config.yaml', 'w', encoding='utf8') as outfile:
+    with io.open(YAML, 'w', encoding='utf8') as outfile:
         yaml.dump(config, outfile, default_flow_style=False, allow_unicode=True)
 
 # Read YAML file
-with open("config.yaml", 'r') as stream:
+with open(YAML, 'r') as stream:
     CONFIG = yaml.safe_load(stream)

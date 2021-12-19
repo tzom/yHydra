@@ -8,18 +8,6 @@ import numpy as np
 import json,os
 from tqdm import tqdm
 
-import argparse
-
-parser = argparse.ArgumentParser(description='convert')
-parser.add_argument('--FASTA_FILE', type=str, help='path to fasta file')
-parser.add_argument('--fasta_type', default='generic', type=str, help='uniprot/ncbi/generic')
-parser.add_argument('--MAX_MISSED_CLEAVAGES', default=1, type=int, help='maximum number of miscleavages')
-parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file')
-parser.add_argument('--REVERSE_DECOY', default=False, type=bool, help='path to db file')
-
-
-args = parser.parse_args()
-
 from load_config import CONFIG
 
 MAX_DATABASE_SIZE=100000000
@@ -30,16 +18,7 @@ SEMI_SPECIFIC_CLEAVAGE=CONFIG['SEMI_SPECIFIC_CLEAVAGE']
 SAVE=True
 SAVE_DB_AS_JSON=True
 
-FASTA_FILE = args.FASTA_FILE
-fasta_type = args.fasta_type
-DB_DIR = args.DB_DIR
-
-# FASTA_FILE = 'uniprot_sprot.fasta.gz'
-# fasta_type = 'uniprot'
-# DB_DIR = './db_miscleav_1'
-
-if not os.path.exists(DB_DIR):
-    os.mkdir(DB_DIR)
+#FASTA_FILE = CONFIG['FASTA']
 
 def add_check_keys_exising(key,dictionary,element):
     if key in dictionary:
@@ -51,7 +30,7 @@ def add_check_keys_exising(key,dictionary,element):
 def cleave_peptide(protein_sequence):
     return pyt_parser.cleave(protein_sequence, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES, semi=SEMI_SPECIFIC_CLEAVAGE)
 
-def digest_seq_record(seq_record):
+def digest_seq_record(seq_record,fasta_type='generic'):
     ID=None
     HEADER = seq_record[0]
     SEQ = seq_record[1]
@@ -85,8 +64,18 @@ def digest_seq_record(seq_record):
 
 from collections import defaultdict
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
 
+def digest_fasta(fasta_file,REVERSE_DECOY=False):
+    if REVERSE_DECOY:
+        DB_DIR = CONFIG['RESULTS_DIR']+'/rev/db'
+    else:
+        DB_DIR = CONFIG['RESULTS_DIR']+'/forward/db'
+            
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR)
+
+    FASTA_FILE = fasta_file
     ncbi_peptide_protein = defaultdict(set)
     ncbi_peptide_meta = {}
 
@@ -100,7 +89,7 @@ if __name__ == '__main__':
     with Pool() as p, ThreadPool() as tp:
 
         with gzip.open(FASTA_FILE, "rt") as FASTA_FILE:
-            if args.REVERSE_DECOY:
+            if REVERSE_DECOY:
                 FASTA_FILE = fasta.decoy_db(FASTA_FILE,decoy_only=True)
             else:
                 FASTA_FILE = fasta.read(FASTA_FILE)
@@ -125,9 +114,6 @@ if __name__ == '__main__':
                     print('exceeding maximum number of allowd peptides %s'%MAX_DATABASE_SIZE)
                     break
 
-                
-    #ncbi_peptide_protein = dict(zip(all_peptides,all_proteins))        
-
     print('Done.')
     print(len(ncbi_peptide_protein))
     if SAVE_DB_AS_JSON:
@@ -145,4 +131,6 @@ if __name__ == '__main__':
         #np.save(os.path.join(DB_DIR,"pepmasses.npy"),np.array(pepmasses))
         #embeddings = list(map(seq_embedder,tqdm(peptides)))
         print('Done.')
+
+    return ncbi_peptide_protein
 

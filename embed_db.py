@@ -1,25 +1,17 @@
 import sys 
 import glob, os
 import argparse
-parser = argparse.ArgumentParser(description='convert')
-parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file')
-parser.add_argument('--GPU', default='-1', type=str, help='GPU id')
-args = parser.parse_args()
-GPU = args.GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = GPU
-#sys.path.append("../dnovo3")
 import numpy as np
 from proteomics_utils import aa_with_pad
-
-from load_model import spectrum_embedder,sequence_embedder
 from tqdm import tqdm
 
-import tensorflow as tf
 from load_config import CONFIG
+# GPU = CONFIG['GPU']
+# os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU)
+import tensorflow as tf
+from load_model import spectrum_embedder,sequence_embedder
 
 AUTOTUNE=tf.data.experimental.AUTOTUNE
-
-DB_DIR=args.DB_DIR
 BATCH_SIZE_PEPTIDES = CONFIG['BATCH_SIZE_PEPTIDES']#4*4096
 MAX_PEPTIDE_LENGTH = CONFIG['PEPTIDE_MAXIMUM_LENGTH']
 
@@ -49,7 +41,13 @@ def p_b_map(function,pool,elements:list,batch_size:int):
     u = [item for sublist in u for item in sublist]
     return u
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
+def embed_db(REVERSE_DECOY=False):
+    if REVERSE_DECOY:
+        DB_DIR = CONFIG['RESULTS_DIR']+'/rev/db'
+    else:
+        DB_DIR = CONFIG['RESULTS_DIR']+'/forward/db'
+            
     import multiprocessing
 
     peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))#[:1000000]
@@ -83,3 +81,4 @@ if __name__ == '__main__':
     print(len(embedded_peptides))
 
     np.save(os.path.join(DB_DIR,"embedded_peptides.npy"),embedded_peptides)
+    return None

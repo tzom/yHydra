@@ -1,10 +1,7 @@
 import multiprocessing, sys, os
-import argparse
-parser = argparse.ArgumentParser(description='convert')
-parser.add_argument('--OUTPUT_DIR', default='./output', type=str, help='directory containing search results')
-parser.add_argument('--GPU', default='-1', type=str, help='GPU id')
-args = parser.parse_args()
-os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU
+import tensorflow as tf
+from load_config import CONFIG
+OUTPUT_DIR = CONFIG['RESULTS_DIR']
 
 import pandas as pd
 import numpy as np
@@ -13,13 +10,6 @@ from score_utils import calc_ions, scoring
 from tqdm import tqdm
 from utils import batched_list,unbatched_list
 from proteomics_utils import normalize_intensities,theoretical_peptide_mass,trim_peaks_list
-from load_config import CONFIG
-
-OUTPUT_DIR = args.OUTPUT_DIR
-
-#search_results = pd.read_csv('./search_results.csv')
-#search_results = pd.read_hdf(os.path.join(OUTPUT_DIR,'search_results.h5'),'search_results')
-
 
 MAX_N_PEAKS = CONFIG['MAX_N_PEAKS']#500
 BATCH_SIZE=CONFIG['BATCH_SIZE']#64
@@ -32,7 +22,8 @@ def trim_peaks_list_(x):
     mzs, intensities = mzs, normalize_intensities(intensities)
     return trim_peaks_list(mzs, intensities,MAX_N_PEAKS=MAX_N_PEAKS)
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
+def search_score(OUTPUT_DIR=OUTPUT_DIR):
     
     with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results.h5')) as store, pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store_out:
         raw_files = store.keys()

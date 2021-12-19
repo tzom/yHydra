@@ -1,40 +1,9 @@
 import sys
-
-import argparse
-
-parser = argparse.ArgumentParser(description='convert')
-parser.add_argument('--DB_DIR', default='./DB', type=str, help='path to db file')
-parser.add_argument('--DECOY_DB_DIR', default='./DB', type=str, help='path to db file')
-parser.add_argument('--MGF', default=None, type=str, help='path to mgf files')
-parser.add_argument('--JSON_DIR', default='./tmp', type=str, help='path to json files')
-parser.add_argument('--OUTPUT_DIR', default='./output', type=str, help='directory containing search results')
-parser.add_argument('--DEBUG_N', default=None, type=int, help='sample N spectra (fpr debugging)')
-parser.add_argument('--GPU', default='-1', type=str, help='GPU id')
-
-args = parser.parse_args()
-
-from tensorflow.python.eager.context import device 
-sys.path.append("../dnovo3")
-#sys.path.append("../Neonomicon")
-import glob, os, json
-
-if args.GPU == '-1':
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU
-    import tensorflow as tf
-    device = '/CPU:0'
-    use_gpu=False    
-else:
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU
-    import tensorflow as tf
-    device = '/GPU:0'
-    physical_devices = tf.config.list_physical_devices('GPU')
-    tf.config.experimental.set_memory_growth(physical_devices[0],True)
+import glob, json, os
+if os.environ.get('CUDA_VISIBLE_DEVICES') != '-1':
     use_gpu=True
 
-
-import random
-#from tf_data_json import USIs,parse_json_npy
-#from usi_magic import parse_usi
+import tensorflow as tf
 from proteomics_utils import parse_mgf_npy
 from proteomics_utils import normalize_intensities,trim_peaks_list_v2,MAX_N_PEAKS,NORMALIZATION_METHOD
 from load_model import spectrum_embedder,sequence_embedder
@@ -43,6 +12,7 @@ from proteomics_utils import theoretical_peptide_mass,precursor2peptide_mass
 from tqdm import tqdm
 import numpy as np
 import multiprocessing
+
 from load_config import CONFIG
 
 K = CONFIG['K']
@@ -55,44 +25,14 @@ AUTOTUNE=tf.data.AUTOTUNE
 
 MSMS_OUTPUT_IN_RESULTS=True
 
-DB_DIR = args.DB_DIR
-DECOY_DB_DIR = args.DECOY_DB_DIR
-#DB_DIR = './db'
-#DB_DIR = './db_miscleav_1'
-#DB_DIR = '../../Neonomicon/PXD007963/db'
+DB_DIR = CONFIG['RESULTS_DIR']+'/forward/db'
+DECOY_DB_DIR = CONFIG['RESULTS_DIR']+'/rev/db'
 
-JSON_DIR = args.JSON_DIR
-OUTPUT_DIR = args.OUTPUT_DIR
-
-db_embedded_peptides = np.load(os.path.join(DB_DIR,"embedded_peptides.npy"))
-db_peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))
-
-decoy_db_embedded_peptides = np.load(os.path.join(DECOY_DB_DIR,"embedded_peptides.npy"))
-decoy_db_peptides = np.load(os.path.join(DECOY_DB_DIR,"peptides.npy"))
-
+OUTPUT_DIR = CONFIG['RESULTS_DIR']
 
 print('fire up datasets...')
-#N = None
-N = args.DEBUG_N
-#N = 163410
 
 import sys,io
-#file = args.MGF#"/hpi/fs00/home/tom.altenburg/scratch/yHydra_testing/PXD007963/raw/qe2_03132014_11trcRBC-2.mgf"
-file = args.MGF
-if USE_STREAM:
-    stream=sys.stdin.buffer.read()
-    stream=io.BytesIO(stream)
-else:
-    stream=file
-
-true_peptides = []
-true_precursorMZs = []
-true_pepmasses = []
-true_charges = []
-true_ID = []
-true_mzs = []
-true_intensities = []
-preprocessed_spectra = []
 
 input_specs_npy = {
     "mzs": np.float32,
@@ -104,12 +44,27 @@ input_specs_npy = {
 
 def parse_json_npy_(file_location): return parse_json_npy(file_location,specs=input_specs_npy)
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
+def search(MGF):
 
+    db_embedded_peptides = np.load(os.path.join(DB_DIR,"embedded_peptides.npy"))
+    db_peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))
+
+    decoy_db_embedded_peptides = np.load(os.path.join(DECOY_DB_DIR,"embedded_peptides.npy"))
+    decoy_db_peptides = np.load(os.path.join(DECOY_DB_DIR,"peptides.npy"))
+
+    true_peptides = []
+    true_precursorMZs = []
+    true_pepmasses = []
+    true_charges = []
+    true_ID = []
+    true_mzs = []
+    true_intensities = []
+    preprocessed_spectra = []
 
     with multiprocessing.Pool(64) as p:
         print('getting scan information...')
-        for i,spectrum in enumerate(tqdm(parse_mgf_npy(stream))):
+        for i,spectrum in enumerate(tqdm(parse_mgf_npy(MGF))):
             mzs = spectrum['mzs']
             intensities = spectrum['intensities']
             if MSMS_OUTPUT_IN_RESULTS:
@@ -136,13 +91,13 @@ if __name__ == '__main__':
     print(len(true_peptides),len(true_precursorMZs),len(true_pepmasses),len(true_charges),len(true_ID),len(true_mzs),len(true_intensities))
 
     #print(list(zip(true_pepmasses,theoretical_pepmasses)))
-    with tf.device(device):
-        print('embedding spectra...')
-        for _ in tqdm(range(1)): 
-            ds_spectra = np.array(preprocessed_spectra)
-            embedded_spectra = spectrum_embedder.predict(ds_spectra,batch_size=BATCH_SIZE)
-            #print('embedding peptides...')
-            #embedded_peptides = sequence_embedder.predict(ds_peptides)
+    #with tf.device(device):
+    print('embedding spectra...')
+    for _ in tqdm(range(1)): 
+        ds_spectra = np.array(preprocessed_spectra)
+        embedded_spectra = spectrum_embedder.predict(ds_spectra,batch_size=BATCH_SIZE)
+        #print('embedding peptides...')
+        #embedded_peptides = sequence_embedder.predict(ds_peptides)
     print(embedded_spectra.shape)
 
     def append_dim(X,new_dim,axis=1):
@@ -281,7 +236,7 @@ if __name__ == '__main__':
         true_mzs,true_intensities = None,None
 
     print(len(predicted_peptides),len(predicted_distances))
-    raw_file=os.path.splitext(os.path.basename(file))[0]
+    raw_file=os.path.splitext(os.path.basename(MGF))[0]
     search_results = pd.DataFrame({
                                 'raw_file':raw_file,
                                 'id':true_ID,

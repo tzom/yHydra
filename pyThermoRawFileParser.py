@@ -1,4 +1,6 @@
 import subprocess
+from load_config import CONFIG
+NUMBER_OF_THREADS = CONFIG['NUMBER_OF_THREADS']
 
 def create_CMD(RAW):
     return ' '.join(['mono','ext/ThermoRawFileParser/ThermoRawFileParser.exe', "-L", "2", "-f", "0", "-i", RAW])
@@ -15,7 +17,7 @@ def parse_rawfiles(RAWs):
     from multiprocessing.dummy import Pool
     from subprocess import call
 
-    pool = Pool(4) # two concurrent commands at a time
+    pool = Pool(NUMBER_OF_THREADS) # two concurrent commands at a time
     commands = list(map(create_CMD,RAWs))
     for i, returncode in enumerate(pool.imap(partial(call, shell=True), commands)):
         if returncode != 0:

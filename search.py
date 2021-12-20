@@ -1,7 +1,8 @@
-import sys
 import glob, json, os
 if os.environ.get('CUDA_VISIBLE_DEVICES') != '-1':
     use_gpu=True
+else:
+    use_gpu=False
 
 import tensorflow as tf
 from proteomics_utils import parse_mgf_npy
@@ -30,28 +31,25 @@ DECOY_DB_DIR = CONFIG['RESULTS_DIR']+'/rev/db'
 
 OUTPUT_DIR = CONFIG['RESULTS_DIR']
 
-print('fire up datasets...')
+db_embedded_peptides = np.load(os.path.join(DB_DIR,"embedded_peptides.npy"))
+db_peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))
 
-import sys,io
+decoy_db_embedded_peptides = np.load(os.path.join(DECOY_DB_DIR,"embedded_peptides.npy"))
+decoy_db_peptides = np.load(os.path.join(DECOY_DB_DIR,"peptides.npy"))
 
-input_specs_npy = {
-    "mzs": np.float32,
-    "intensities": np.float32,
-    "usi": str,
-    #"charge": float,
-    "precursorMZ": float,
-}
+from mass_buckets import bucket_indices, get_peptide_mass, MIN_PEPTIDE_MASS, MAX_PEPTIDE_MASS, add_bucket_adress
 
-def parse_json_npy_(file_location): return parse_json_npy(file_location,specs=input_specs_npy)
+print('calc masses ...')
+db_target_decoy_peptides = np.concatenate([db_peptides,decoy_db_peptides])
+db_pepmasses = np.array(list(map(get_peptide_mass,tqdm(db_target_decoy_peptides))))
+
 
 #if __name__ == '__main__':
-def search(MGF):
-
-    db_embedded_peptides = np.load(os.path.join(DB_DIR,"embedded_peptides.npy"))
-    db_peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))
-
-    decoy_db_embedded_peptides = np.load(os.path.join(DECOY_DB_DIR,"embedded_peptides.npy"))
-    decoy_db_peptides = np.load(os.path.join(DECOY_DB_DIR,"peptides.npy"))
+def search(MGF,
+           db_embedded_peptides=db_embedded_peptides,
+           decoy_db_embedded_peptides=decoy_db_embedded_peptides,
+           db_target_decoy_peptides=db_target_decoy_peptides,
+           db_pepmasses=db_pepmasses,):
 
     true_peptides = []
     true_precursorMZs = []
@@ -111,16 +109,10 @@ def search(MGF):
     #query = embedded_peptides
     query = embedded_spectra
     db = np.concatenate([db_embedded_peptides,decoy_db_embedded_peptides])
-    db_target_decoy_peptides = np.concatenate([db_peptides,decoy_db_peptides])
     db_is_decoy = np.concatenate([np.zeros(len(db_embedded_peptides),bool),np.ones(len(decoy_db_embedded_peptides),dtype=bool)])
 
     ####### MASS BUCKETS #######
     ######################################
-
-    from mass_buckets import bucket_indices, get_peptide_mass, MIN_PEPTIDE_MASS, MAX_PEPTIDE_MASS, add_bucket_adress
-
-    print('calc masses ...')
-    db_pepmasses = np.array(list(map(get_peptide_mass,tqdm(db_target_decoy_peptides))))
 
     inmassrange_indices =  (db_pepmasses >= MIN_PEPTIDE_MASS) & (db_pepmasses <= MAX_PEPTIDE_MASS)
     db_pepmasses = db_pepmasses[inmassrange_indices]

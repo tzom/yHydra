@@ -28,25 +28,34 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
     with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results.h5')) as store, pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store_out:
         raw_files = store.keys()
         search_results_scored = pd.DataFrame()
-        for key in raw_files:
-            search_results = store[key]
 
-            SUBSET=None
-
-            top_peptides = []
-            top_peptide_is_decoys = []
-            top_peptide_distances = []
-            best_scores = []
-            all_scores = []
-
-            with multiprocessing.Pool(NUMBER_OF_THREADS) as p:
-
+        with multiprocessing.Pool(NUMBER_OF_THREADS) as p:
+            
+            peptide_charge = set()
+            for key in raw_files:
+                search_results = store[key]
                 print('explode...' )
                 tmp = search_results[['topk_peptides','charge']].explode('topk_peptides')
-                peptide_charge = list(zip(tmp.topk_peptides,tmp.charge))
-                peptide_charge = list(set(peptide_charge))
-                ions = list(p.map(calc_ions,tqdm(peptide_charge)))
-                peptide_charge_2_ions = dict(zip(peptide_charge,ions))
+                additional_peptide_charge = list(zip(tmp.topk_peptides,tmp.charge))
+                additional_peptide_charge = set(additional_peptide_charge)
+                peptide_charge = peptide_charge.union(additional_peptide_charge)
+
+            print('calculate ions...')
+            ions = list(p.map(calc_ions,tqdm(peptide_charge)))
+            peptide_charge_2_ions = dict(zip(peptide_charge,ions))
+
+            for key in raw_files:
+                search_results = store[key]
+
+                SUBSET=None
+
+                top_peptides = []
+                top_peptide_is_decoys = []
+                top_peptide_distances = []
+                best_scores = []
+                all_scores = []
+
+
                 
                 #for i,row in enumerate(search_results.iterrows()):
                 for i in tqdm(range(0,len(search_results[:SUBSET]),BATCH_SIZE)):     

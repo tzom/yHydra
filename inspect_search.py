@@ -1,3 +1,5 @@
+import sys,os 
+os.environ['YHYDRA_CONFIG'] = sys.argv[1]
 from load_config import CONFIG
 
 RESULTS_DIR = CONFIG['RESULTS_DIR']

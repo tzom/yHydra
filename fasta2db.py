@@ -11,13 +11,18 @@ from tqdm import tqdm
 from load_config import CONFIG
 
 MAX_DATABASE_SIZE=100000000
-PEPTIDE_MINIMUM_LENGTH=CONFIG['PEPTIDE_MINIMUM_LENGTH']#7
-PEPTIDE_MAXIMUM_LENGTH=CONFIG['PEPTIDE_MAXIMUM_LENGTH']#42
+DB_PEPTIDE_MINIMUM_LENGTH=CONFIG['DB_PEPTIDE_MINIMUM_LENGTH']#7
+DB_PEPTIDE_MAXIMUM_LENGTH=CONFIG['DB_PEPTIDE_MAXIMUM_LENGTH']#42
 MAX_MISSED_CLEAVAGES=CONFIG['MAX_MISSED_CLEAVAGES']#args.MAX_MISSED_CLEAVAGES
+ENZYME=CONFIG['ENZYME']
 SEMI_SPECIFIC_CLEAVAGE=CONFIG['SEMI_SPECIFIC_CLEAVAGE']
 SAVE=True
 SAVE_DB_AS_JSON=True
 
+if "r'" in ENZYME:
+    ENZYME = ENZYME.replace("r'","") 
+    ENZYME = ENZYME.replace("'","")
+    ENZYME = r'%s'%ENZYME 
 #FASTA_FILE = CONFIG['FASTA']
 
 def add_check_keys_exising(key,dictionary,element):
@@ -28,7 +33,8 @@ def add_check_keys_exising(key,dictionary,element):
     return dictionary   
 
 def cleave_peptide(protein_sequence):
-    return pyt_parser.cleave(protein_sequence, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES, semi=SEMI_SPECIFIC_CLEAVAGE)
+    #return pyt_parser.cleave(protein_sequence, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES, semi=SEMI_SPECIFIC_CLEAVAGE)
+    return pyt_parser.cleave(protein_sequence, ENZYME,min_length=DB_PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES, semi=SEMI_SPECIFIC_CLEAVAGE)
 
 def digest_seq_record(seq_record,fasta_type='generic'):
     ID=None
@@ -53,7 +59,7 @@ def digest_seq_record(seq_record,fasta_type='generic'):
     
     cleaved_peptides = cleave_peptide(SEQ)
 
-    LENGTH_CONDITION = lambda x: not (len(x) > PEPTIDE_MAXIMUM_LENGTH or len(x) < PEPTIDE_MINIMUM_LENGTH)
+    LENGTH_CONDITION = lambda x: not (len(x) > DB_PEPTIDE_MAXIMUM_LENGTH or len(x) < DB_PEPTIDE_MINIMUM_LENGTH)
     cleaved_peptides = list(filter(LENGTH_CONDITION,cleaved_peptides))
 
     ODD_AMINOACIDS_CONDITION = lambda x: not (len(set(x).intersection(set(['X','U','J','Z','B','O'])))>0)

@@ -59,8 +59,10 @@ def embed_db(REVERSE_DECOY=False):
         peptides = p_b_map(trim_sequence,p,peptides,batch_size=BATCH_SIZE_PEPTIDES)
         peptides = p_b_map(get_sequence_of_indices,p,peptides,batch_size=BATCH_SIZE_PEPTIDES)
     
-    peptides = np.array(peptides,dtype=np.int32)
-    print(peptides.shape)
+    print('cast as numpy array...')
+    for _ in tqdm(range(1)):
+        peptides = np.array(peptides,dtype=np.int32)
+        print(peptides.shape)
 
     def get_dataset(peptides,batch_size=BATCH_SIZE_PEPTIDES):
         def peptide_generator():
@@ -72,9 +74,11 @@ def embed_db(REVERSE_DECOY=False):
 
     peptides_ds = get_dataset(peptides)
 
+    print('iterate over tf dataset...')
     for p in tqdm(peptides_ds):
         pass
 
+    print('embed peptides...')
     for _ in tqdm(range(1)):
         embedded_peptides = sequence_embedder.predict(peptides_ds)
 

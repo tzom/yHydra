@@ -43,6 +43,9 @@ print('calc masses ...')
 db_target_decoy_peptides = np.concatenate([db_peptides,decoy_db_peptides])
 db_pepmasses = np.array(list(map(get_peptide_mass,tqdm(db_target_decoy_peptides))))
 
+_,est_open = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
+_,est_narrow = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
+
 
 #if __name__ == '__main__':
 def search(MGF,
@@ -122,25 +125,25 @@ def search(MGF,
 
     ######################################
     ######### NARROW
-    buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
+    #_,est_narrow = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
 
-    db_narrow = add_bucket_adress(db,db_pepmasses,est,N_BUCKETS=N_BUCKETS_NARROW)
+    db_narrow = add_bucket_adress(db,db_pepmasses,est_narrow,N_BUCKETS=N_BUCKETS_NARROW)
     
-    embedded_spectra_narrow = add_bucket_adress(embedded_spectra,true_pepmasses,est,0,N_BUCKETS=N_BUCKETS_NARROW)
+    embedded_spectra_narrow = add_bucket_adress(embedded_spectra,true_pepmasses,est_narrow,0,N_BUCKETS=N_BUCKETS_NARROW)
 
     ######### NARROW
     ######################################
 
     ######################################
     ######### OPEN
-    buckets,est = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
+    #_,est_open = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
 
-    db_open = add_bucket_adress(db,db_pepmasses,est,N_BUCKETS=N_BUCKETS_OPEN)
+    db_open = add_bucket_adress(db,db_pepmasses,est_open,N_BUCKETS=N_BUCKETS_OPEN)
     
-    embedded_spectra_open_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est,0,N_BUCKETS=N_BUCKETS_OPEN)
+    embedded_spectra_open_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est_open,0,N_BUCKETS=N_BUCKETS_OPEN)
 
-    embedded_spectra_open_m1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,-1,N_BUCKETS=N_BUCKETS_OPEN)
-    embedded_spectra_open_p1 = add_bucket_adress(embedded_spectra,true_pepmasses,est,+1,N_BUCKETS=N_BUCKETS_OPEN)
+    #embedded_spectra_open_m1 = add_bucket_adress(embedded_spectra,true_pepmasses,est_open,-1,N_BUCKETS=N_BUCKETS_OPEN)
+    #embedded_spectra_open_p1 = add_bucket_adress(embedded_spectra,true_pepmasses,est_open,+1,N_BUCKETS=N_BUCKETS_OPEN)
     ######### OPEN
     ######################################
 

@@ -127,25 +127,25 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
                     best_scores.extend(best_score)
                     all_scores.extend(np.reshape(pos_score,-1))
 
-            search_results = search_results[:SUBSET]
+                search_results = search_results[:SUBSET]
 
-            search_results['best_is_decoy']=top_peptide_is_decoys
-            search_results['best_distance']=top_peptide_distances
-            search_results['best_score']=best_scores
-            search_results['best_peptide']=top_peptides
-            search_results['peptide_mass']= list(map(lambda x: theoretical_peptide_mass(*x),zip(top_peptides,np.zeros_like(top_peptides))))
-            search_results['delta_mass']=search_results['pepmass'] - search_results['peptide_mass']
+                search_results['best_is_decoy']=top_peptide_is_decoys
+                search_results['best_distance']=top_peptide_distances
+                search_results['best_score']=best_scores
+                search_results['best_peptide']=top_peptides
+                search_results['peptide_mass']= list(map(lambda x: theoretical_peptide_mass(*x),zip(top_peptides,np.zeros_like(top_peptides))))
+                search_results['delta_mass']=search_results['pepmass'] - search_results['peptide_mass']
 
-            #search_results=search_results.drop(columns=['mzs', 'intensities'])
-            print(sum(search_results['best_peptide']==search_results['peptide'])/len(search_results))
+                #search_results=search_results.drop(columns=['mzs', 'intensities'])
+                print(sum(search_results['best_peptide']==search_results['peptide'])/len(search_results))
 
-            print(search_results)
-            print(search_results.columns)
+                print(search_results)
+                print(search_results.columns)
 
-            #search_results.to_csv('search_results_scored.csv',index=False)
-            #search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),key='search_results_scored', mode='w')
+                #search_results.to_csv('search_results_scored.csv',index=False)
+                #search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),key='search_results_scored', mode='w')
 
-            #search_results_scored = pd.concat([search_results_scored,search_results],ignore_index=True)
-        #with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store_out:
-            store_out.put(key,search_results)
+                #search_results_scored = pd.concat([search_results_scored,search_results],ignore_index=True)
+            #with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store_out:
+                store_out.put(key,search_results)
     #search_results_scored.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),key='search_results_scored', mode='w')

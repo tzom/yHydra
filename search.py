@@ -5,6 +5,7 @@ else:
     use_gpu=False
 
 import tensorflow as tf
+#from read_alphapept_ms_data_hdf import parse_hdf_npy
 from proteomics_utils import parse_mgf_npy
 from proteomics_utils import normalize_intensities,trim_peaks_list_v2,MAX_N_PEAKS,NORMALIZATION_METHOD
 from load_model import spectrum_embedder,sequence_embedder
@@ -58,7 +59,8 @@ def search(MGF,
     true_precursorMZs = []
     true_pepmasses = []
     true_charges = []
-    true_ID = []
+    true_scan = []
+    true_index = []
     true_mzs = []
     true_intensities = []
     preprocessed_spectra = []
@@ -66,6 +68,7 @@ def search(MGF,
     with multiprocessing.Pool(64) as p:
         print('getting scan information...')
         for i,spectrum in enumerate(tqdm(parse_mgf_npy(MGF))):
+        #for i,spectrum in enumerate(tqdm(parse_hdf_npy(MGF,calibrate_fragments=True,database_filename='/hpi/fs00/home/tom.altenburg/projects/test_alphapept/bruker_example/test_database.hdf'))):        
             mzs = spectrum['mzs']
             intensities = spectrum['intensities']
             if MSMS_OUTPUT_IN_RESULTS:
@@ -80,16 +83,21 @@ def search(MGF,
 
             charge=int(spectrum['charge'])
             precursorMZ=float(spectrum['precursorMZ'])
-            scans=int(spectrum['scans'])
+            pepmass=precursor2peptide_mass(precursorMZ,int(charge))
+            #precursorMZ=None
+            #precursor_mass = float(spectrum['precursor_mass'])
+            #pepmass=precursor_mass#precursor2peptide_mass(precursor_mass,int(charge))
+            scan=int(spectrum['scans'])
 
             true_precursorMZs.append(precursorMZ)
-            true_pepmasses.append(precursor2peptide_mass(precursorMZ,int(charge)))
+            true_pepmasses.append(pepmass)
             true_charges.append(int(charge))
-            true_ID.append(scans)
+            true_scan.append(scan)
+            true_index.append(i+1)
             true_peptides.append('')
             # if i>1000-2:
             #     break
-    print(len(true_peptides),len(true_precursorMZs),len(true_pepmasses),len(true_charges),len(true_ID),len(true_mzs),len(true_intensities))
+    print(len(true_peptides),len(true_precursorMZs),len(true_pepmasses),len(true_charges),len(true_scan),len(true_mzs),len(true_intensities))
 
     #print(list(zip(true_pepmasses,theoretical_pepmasses)))
     #with tf.device(device):
@@ -234,7 +242,8 @@ def search(MGF,
     raw_file=os.path.splitext(os.path.basename(MGF))[0]
     search_results = pd.DataFrame({
                                 'raw_file':raw_file,
-                                'id':true_ID,
+                                'scan':true_scan,
+                                'index':true_index,
                                 'is_decoy':is_decoy,
                                 'precursorMZ':true_precursorMZs,    
                                 'pepmass':true_pepmasses,

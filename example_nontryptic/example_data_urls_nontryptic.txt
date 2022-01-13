@@ -1,0 +1,8 @@
+https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/Eukaryota/UP000005640/UP000005640_9606.fasta.gz
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2020/09/PXD020011/SEARCH%20HLA-I.zip
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2020/09/PXD020011/20180814_QEh1_LC1_SA_FaMa_HLAIp_CD8_1_R1.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2020/09/PXD020011/20180814_QEh1_LC1_SA_FaMa_HLAIp_CD8_1_R2.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2020/09/PXD020011/20180814_QEh1_LC1_SA_FaMa_HLAIp_CD8_2_R1.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2020/09/PXD020011/20180814_QEh1_LC1_SA_FaMa_HLAIp_CD8_2_R2.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2020/09/PXD020011/20180814_QEh1_LC1_SA_FaMa_HLAIp_CD8_3_R1.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2020/09/PXD020011/20180814_QEh1_LC1_SA_FaMa_HLAIp_CD8_3_R2.raw

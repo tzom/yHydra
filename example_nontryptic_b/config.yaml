@@ -1,0 +1,41 @@
+# Input - File Locations
+FASTA: example_nontryptic_b/*.fasta.gz
+RAWs: example_nontryptic_b/*.raw
+
+# Output - Results directory
+RESULTS_DIR: example_nontryptic_b/search
+
+# General Parameters
+BATCH_SIZE: 64
+BATCH_SIZE_PEPTIDES: 4096
+NUMBER_OF_THREADS: 64
+USE_STREAM: FALSE
+GPU: 0
+
+# Preprocessing Parameters
+MAX_N_PEAKS: 100
+NORMALIZATION_METHOD: L2
+
+# Search Parameters
+DB_PEPTIDE_MINIMUM_LENGTH: 8
+DB_PEPTIDE_MAXIMUM_LENGTH: 15
+MAX_MISSED_CLEAVAGES: 15
+ENZYME: trypsin
+SEMI_SPECIFIC_CLEAVAGE: True
+K: 100
+MIN_PEPTIDE_MASS: 500.
+MAX_PEPTIDE_MASS: 5000.
+N_BUCKETS_NARROW: 2250
+N_BUCKETS_OPEN: 12
+
+# Scoring Parameters
+FDR: 0.01
+MAX_N_FRAGMENTS: 200
+TOLERANCE_DALTON: 0.01
+MIN_MATCHING_PEAKS : 4
+MIN_DELTA_MASS: -150.
+MAX_DELTA_MASS: 500.
+
+# Essential Parameters [do not change]
+PEPTIDE_MINIMUM_LENGTH: 7
+PEPTIDE_MAXIMUM_LENGTH: 42

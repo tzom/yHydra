@@ -1,0 +1,4 @@
+https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/Eukaryota/UP000005640/UP000005640_9606.fasta.gz
+http://ftp.ebi.ac.uk/pride-archive/2017/08/PXD005231/20160902_QEh1_LC2_CHC_SA_HLApI_TIL3_1.raw
+http://ftp.ebi.ac.uk/pride-archive/2017/08/PXD005231/20160902_QEh1_LC2_CHC_SA_HLApI_TIL3_2.raw
+http://ftp.ebi.ac.uk/pride-archive/2017/08/PXD005231/20160902_QEh1_LC2_CHC_SA_HLApI_TIL3_3.raw

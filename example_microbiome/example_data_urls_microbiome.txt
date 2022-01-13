@@ -1,0 +1,7 @@
+https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+#ftp://ftp.cngb.org/pub/SciRAID/Microbiome/humanGut_9.9M/GeneCatalog/IGC.pep.gz
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/03/PXD016427/Leyuan_20190531_RapidAIM_mp_vs_mg_CTRL_1.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/03/PXD016427/Leyuan_20190531_RapidAIM_mp_vs_mg_CTRL_2.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/03/PXD016427/Leyuan_20190531_RapidAIM_mp_vs_mg_CTRL_3.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/03/PXD016427/Leyuan_20190531_RapidAIM_mp_vs_mg_CTRL_4.raw
+http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/03/PXD016427/Leyuan_20190531_RapidAIM_mp_vs_mg_CTRL_5.raw

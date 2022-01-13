@@ -15,7 +15,9 @@ MAX_N_PEAKS = CONFIG['MAX_N_PEAKS']#500
 BATCH_SIZE=CONFIG['BATCH_SIZE']#64
 NUMBER_OF_THREADS=CONFIG['NUMBER_OF_THREADS']#64
 K=CONFIG['K']#50
+TOPK=1
 VERBOSE = False
+SUBSET=None
 
 def trim_peaks_list_(x): 
     mzs, intensities = x
@@ -34,6 +36,7 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
             peptide_charge = set()
             for key in raw_files:
                 search_results = store[key]
+                search_results = search_results[:SUBSET]
                 print('explode...' )
                 tmp = search_results[['topk_peptides','charge']].explode('topk_peptides')
                 additional_peptide_charge = list(zip(tmp.topk_peptides,tmp.charge))
@@ -47,8 +50,6 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
             for key in raw_files:
                 search_results = store[key]
 
-                SUBSET=None
-
                 top_peptides = []
                 top_peptide_is_decoys = []
                 top_peptide_distances = []
@@ -56,9 +57,9 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
                 all_scores = []
 
 
-                
+                search_results = search_results[:SUBSET]
                 #for i,row in enumerate(search_results.iterrows()):
-                for i in tqdm(range(0,len(search_results[:SUBSET]),BATCH_SIZE)):     
+                for i in tqdm(range(0,len(search_results),BATCH_SIZE)):     
                     rows = search_results.iloc[i:i+BATCH_SIZE] # TODO: fix last batch
                     true_peptide = rows['peptide'].to_numpy()
                     batched_topk_peptides = rows['topk_peptides'].to_numpy()
@@ -111,10 +112,27 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
                         if VERBOSE:
                             print('scoring...')
                         best_score_index, best_score, pos_score = scoring(mzs, intensities, ions)        
+                    #print(pos_score.shape)
+                    #replace zeros with -1
+                    #pos_score = np.where(pos_score==0.0, -100.0, pos_score)
+                    sorted_index = np.argsort(pos_score,axis=-1)[:,::-1]
+                    sorted_index = sorted_index[:,:TOPK]
+                    #sorted_index = np.reshape(best_score_index,(len(best_score_index),1))
+                    
+                    #print(sorted_index)
+                    top_peptide_ = batched_topk_peptides
+                    top_peptide_is_decoy_ = rows['is_decoy'].to_numpy()
+                    top_peptide_distance_ = rows['topk_distances'].to_numpy()
+                    best_score_ = np.array(pos_score)
+                    
+                    top_peptide = [top_peptide_[i][sorted_index[i,:]] for i in range(top_peptide_.shape[0])]
+                    top_peptide_is_decoy = [top_peptide_is_decoy_[i][sorted_index[i,:]] for i in range(top_peptide_is_decoy_.shape[0])]
+                    top_peptide_distance = [top_peptide_distance_[i][sorted_index[i,:]] for i in range(top_peptide_distance_.shape[0])]
+                    best_score = [best_score_[i][sorted_index[i,:]] for i in range(best_score_.shape[0])]
 
-                    top_peptide = [batched_topk_peptides[id][b] for id,b in enumerate(best_score_index)]
-                    top_peptide_is_decoy = [rows['is_decoy'].to_numpy()[id][b] for id,b in enumerate(best_score_index)]
-                    top_peptide_distance = [rows['topk_distances'].to_numpy()[id][b] for id,b in enumerate(best_score_index)]
+                    #top_peptide = [batched_topk_peptides[id][b] for id,b in enumerate(best_score_index)]
+                    #top_peptide_is_decoy = [rows['is_decoy'].to_numpy()[id][b] for id,b in enumerate(best_score_index)]
+                    #top_peptide_distance = [rows['topk_distances'].to_numpy()[id][b] for id,b in enumerate(best_score_index)]
                     if VERBOSE:
                         print(sum(top_peptide==true_peptide))
                     #print(sum(top_peptide==true_peptide),top_peptide,true_peptide,best_score)
@@ -127,15 +145,19 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
                     best_scores.extend(best_score)
                     all_scores.extend(np.reshape(pos_score,-1))
 
-                search_results = search_results[:SUBSET]
+                #search_results = search_results[:SUBSET]
+                
+                search_results= search_results.iloc[np.repeat(np.arange(len(search_results)), TOPK)]
 
-                search_results['best_is_decoy']=top_peptide_is_decoys
-                search_results['best_distance']=top_peptide_distances
-                search_results['best_score']=best_scores
-                search_results['best_peptide']=top_peptides
-                search_results['peptide_mass']= list(map(lambda x: theoretical_peptide_mass(*x),zip(top_peptides,np.zeros_like(top_peptides))))
+
+                search_results['best_is_decoy']=list(unbatched_list(top_peptide_is_decoys))
+                search_results['best_distance']=list(unbatched_list(top_peptide_distances))
+                search_results['best_score']=list(unbatched_list(best_scores))
+                search_results['best_peptide']=list(unbatched_list(top_peptides))
+                all_peptides = list(unbatched_list(top_peptides))
+                search_results['peptide_mass']= list(map(lambda x: theoretical_peptide_mass(*x),zip(all_peptides,np.zeros_like(all_peptides))))
                 search_results['delta_mass']=search_results['pepmass'] - search_results['peptide_mass']
-
+                print(len(search_results))
                 #search_results=search_results.drop(columns=['mzs', 'intensities'])
                 print(sum(search_results['best_peptide']==search_results['peptide'])/len(search_results))
 
@@ -146,6 +168,6 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
                 #search_results.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),key='search_results_scored', mode='w')
 
                 #search_results_scored = pd.concat([search_results_scored,search_results],ignore_index=True)
-            #with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store_out:
+                #with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store_out:
                 store_out.put(key,search_results)
     #search_results_scored.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),key='search_results_scored', mode='w')

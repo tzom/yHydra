@@ -13,4 +13,6 @@ with pd.HDFStore(os.path.join('%s/'%(RESULTS_DIR),'search_results_scored_filtere
     raw_files = store.keys()
     search_results = pd.concat([store[key] for key in raw_files],ignore_index=True)
 
-print(search_results)
+selected_columns = ['raw_file','scan','index','precursorMZ','pepmass','charge','best_is_decoy','best_distance','best_score','best_peptide','peptide_mass','delta_mass','accession']
+
+print(search_results[selected_columns])

@@ -135,9 +135,12 @@ def search(MGF,
     ######### NARROW
     #_,est_narrow = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
 
-    db_narrow = add_bucket_adress(db,db_pepmasses,est_narrow,N_BUCKETS=N_BUCKETS_NARROW)
-    
-    embedded_spectra_narrow = add_bucket_adress(embedded_spectra,true_pepmasses,est_narrow,0,N_BUCKETS=N_BUCKETS_NARROW)
+    # db_narrow = add_bucket_adress(db,db_pepmasses,est_narrow,N_BUCKETS=N_BUCKETS_NARROW)    
+    # embedded_spectra_narrow = add_bucket_adress(embedded_spectra,true_pepmasses,est_narrow,0,N_BUCKETS=N_BUCKETS_NARROW)
+
+    true_pepmasses = np.array(true_pepmasses)
+    db_narrow = np.concatenate([db,np.expand_dims(db_pepmasses,-1)],axis=-1).astype(np.float32)    
+    embedded_spectra_narrow = np.concatenate([embedded_spectra,np.expand_dims(true_pepmasses,-1)],axis=-1).astype(np.float32)
 
     ######### NARROW
     ######################################

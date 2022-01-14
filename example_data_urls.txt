@@ -1,4 +1,4 @@
-http://ftp.pride.ebi.ac.uk/pride/data/archive/2019/01/PXD007963/SynPCC7002_Cbase.fasta
-http://ftp.pride.ebi.ac.uk/pride/data/archive/2019/01/PXD007963/qe2_03132014_13WT-3.raw
-http://ftp.pride.ebi.ac.uk/pride/data/archive/2019/01/PXD007963/qe2_03132014_1WT-1.raw
-http://ftp.pride.ebi.ac.uk/pride/data/archive/2019/01/PXD007963/qe2_03132014_5WT-2.raw
+http://ftp.ebi.ac.uk/pride-archive/2019/01/PXD007963/SynPCC7002_Cbase.fasta
+http://ftp.ebi.ac.uk/pride-archive/2019/01/PXD007963/qe2_03132014_13WT-3.raw
+http://ftp.ebi.ac.uk/pride-archive/2019/01/PXD007963/qe2_03132014_1WT-1.raw
+http://ftp.ebi.ac.uk/pride-archive/2019/01/PXD007963/qe2_03132014_5WT-2.raw

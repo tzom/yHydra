@@ -3,7 +3,6 @@ GPU = str(CONFIG['GPU'])
 import os
 # suppress tensorflow warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-from tensorflow.python.eager.context import device 
 
 if GPU == '-1':
     os.environ["CUDA_VISIBLE_DEVICES"] = GPU

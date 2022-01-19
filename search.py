@@ -22,6 +22,9 @@ N_BUCKETS_NARROW = CONFIG['N_BUCKETS_NARROW']
 N_BUCKETS_OPEN = CONFIG['N_BUCKETS_OPEN']
 BATCH_SIZE = CONFIG['BATCH_SIZE']
 USE_STREAM = CONFIG['USE_STREAM']
+OPEN_SEARCH = True #TODO add to config
+MIN_CHARGE = 2 #TODO add to config
+MAX_CHARGE = 5 #TODO add to config
 
 AUTOTUNE=tf.data.AUTOTUNE
 
@@ -71,15 +74,13 @@ def search(MGF,
         #for i,spectrum in enumerate(tqdm(parse_hdf_npy(MGF,calibrate_fragments=True,database_filename='/hpi/fs00/home/tom.altenburg/projects/test_alphapept/bruker_example/test_database.hdf'))):        
             mzs = spectrum['mzs']
             intensities = spectrum['intensities']
-            if MSMS_OUTPUT_IN_RESULTS:
-                true_mzs.append(mzs)
-                true_intensities.append(intensities)
+
             mzs = np.array(mzs)
             intensities = np.array(intensities)
             #mzs, intensities = mzs,normalize_intensities(intensities,method=NORMALIZATION_METHOD)
             #mzs, intensities = trim_peaks_list_v2(mzs, intensities, MAX_N_PEAKS=MAX_N_PEAKS, PAD_N_PEAKS=500)
             preprocessed_spectrum = np.stack((mzs, intensities),axis=-1)
-            preprocessed_spectra.append(preprocessed_spectrum)
+            
 
             charge=int(spectrum['charge'])
             precursorMZ=float(spectrum['precursorMZ'])
@@ -89,14 +90,28 @@ def search(MGF,
             #pepmass=precursor_mass#precursor2peptide_mass(precursor_mass,int(charge))
             scan=int(spectrum['scans'])
 
+            if pepmass<MIN_PEPTIDE_MASS:
+              continue
+            if pepmass>MAX_PEPTIDE_MASS:
+              continue
+            if charge<MIN_CHARGE:
+              continue
+            if charge>MAX_CHARGE:
+              continue
+
+            if MSMS_OUTPUT_IN_RESULTS:
+                true_mzs.append(mzs)
+                true_intensities.append(intensities)
+
+            preprocessed_spectra.append(preprocessed_spectrum)
+
             true_precursorMZs.append(precursorMZ)
             true_pepmasses.append(pepmass)
             true_charges.append(int(charge))
             true_scan.append(scan)
             true_index.append(i+1)
             true_peptides.append('')
-            # if i>1000-2:
-            #     break
+
     print(len(true_peptides),len(true_precursorMZs),len(true_pepmasses),len(true_charges),len(true_scan),len(true_mzs),len(true_intensities))
 
     #print(list(zip(true_pepmasses,theoretical_pepmasses)))
@@ -212,11 +227,15 @@ def search(MGF,
     index = get_index(db_narrow,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
     D_narrow,I_narrow = perform_search(query=embedded_spectra_narrow,k=K,index=index,method='faiss')
 
-    index = get_index(db_open,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
-    D_open,I_open = perform_search(query=embedded_spectra_open_0,k=K,index=index,method='faiss')
-
-    D=np.concatenate([D_narrow,D_open],axis=-1)
-    I=np.concatenate([I_narrow,I_open],axis=-1)
+    if OPEN_SEARCH:
+      index = get_index(db_open,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
+      D_open,I_open = perform_search(query=embedded_spectra_open_0,k=K,index=index,method='faiss')
+    
+      D=np.concatenate([D_narrow,D_open],axis=-1)
+      I=np.concatenate([I_narrow,I_open],axis=-1)
+    else:
+      D=D_narrow
+      I=I_narrow
 
     #index = get_index(db,k=K,metric='euclidean',method='faiss',use_gpu=use_gpu)
     #D,I = perform_search(query=embedded_spectra,k=K,index=index,method='faiss')

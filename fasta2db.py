@@ -93,8 +93,13 @@ def digest_fasta(fasta_file,REVERSE_DECOY=False):
     from multiprocessing.pool import Pool, ThreadPool
 
     with Pool() as p, ThreadPool() as tp:
+        
+        if '.gz' in FASTA_FILE:
+            handle = gzip.open(FASTA_FILE, "rt")
+        else:
+            handle = open(FASTA_FILE, "rt")
 
-        with gzip.open(FASTA_FILE, "rt") as FASTA_FILE:
+        with handle as FASTA_FILE:
             if REVERSE_DECOY:
                 FASTA_FILE = fasta.decoy_db(FASTA_FILE,decoy_only=True)
             else:

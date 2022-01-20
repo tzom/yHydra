@@ -40,7 +40,7 @@ The following commands will download example data (from https://www.ebi.ac.uk/pr
 ``` BASH
 mkdir example
 wget -nc -i example_data_urls.txt -P example/
-bash run.sh config.yaml
+python run.py example/config.yaml
 ```
 
 ## Run yHydra
@@ -49,7 +49,7 @@ To run yHydra specify the location of input files in **`./config.yaml`**:
 
 ``` YAML
 # Input - File Locations
-FASTA: example/*.fasta.gz
+FASTA: example/*.fasta
 RAWs: example/*.raw
 
 # Output - Results directory
@@ -63,7 +63,7 @@ BATCH_SIZE: 64
 then you can run yHydra using specified parameters (**`./config.yaml`**):
 
 ``` BASH
-bash run.sh config.yaml
+python run.py config.yaml
 ```
 
 ## Inspect search results

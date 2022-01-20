@@ -1,5 +1,5 @@
 # Input - File Locations
-FASTA: example/*.fasta.gz
+FASTA: example/*.fasta
 RAWs: example/*.raw
 
 # Output - Results directory

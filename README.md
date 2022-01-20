@@ -71,7 +71,7 @@ python run.py config.yaml
 The search results are dumped as dataframe in .hdf-files (e.g. locations is specified as **`RESULTS_DIR: example/search`** in the **`./config.yaml`**), in order to get a glimpse of identfications, you can run this:
 
 ```
-python inspect_search.py
+python inspect_search.py example/config.yaml
 ```
 
 which gives you the following output:

@@ -5,7 +5,6 @@ OUTPUT_DIR = CONFIG['RESULTS_DIR']
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from score_utils import calc_ions, scoring
 from tqdm import tqdm
 from utils import batched_list,unbatched_list

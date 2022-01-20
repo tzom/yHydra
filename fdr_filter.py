@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib_venn import venn2
 #from score import calc_ions, scoring
 from tqdm import tqdm
 from pyteomics import auxiliary as aux
@@ -47,10 +45,7 @@ def fdr_filter():
             ncbi_peptide_protein = json.load(fp)
         df_filtered['accession'] = list(map(lambda x: ncbi_peptide_protein[x],df_filtered.best_peptide))
 
-    print(sum(df_filtered['best_peptide']==df_filtered['peptide'])/len(df_filtered))
-    ground_truth_ident_peptides=set(df.peptide.unique())
     yhydra_ident_peptides=set(df_filtered.best_peptide.unique())
-    print('Identified peptides (true):',len(ground_truth_ident_peptides))
     print('Identified peptides (yHydra):',len(yhydra_ident_peptides))
 
     df_filtered.to_hdf(os.path.join(OUTPUT_DIR,'search_results_scored_filtered.h5'),key='search_results_scored_filtered', mode='w')

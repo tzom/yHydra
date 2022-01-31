@@ -1,0 +1,10 @@
+tensorflow-gpu == 2.4
+pyteomics.cythonize
+lxml
+scikit-learn
+biopython
+pandas
+tqdm
+pyyaml
+tables
+umap-learn[plot]

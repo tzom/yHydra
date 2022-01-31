@@ -8,7 +8,7 @@ from tqdm import tqdm
 OUTPUT_DIR = CONFIG['RESULTS_DIR']
 SAVE_DB_AS_JSON = True#CONFIG['SAVE_DB_AS_JSON']
 
-
+OUTPUT_TYPE = "PIN" # "PIN" or "PEPREC"
 
 with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
     raw_files = store.keys()
@@ -95,10 +95,20 @@ with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
 
 
 
-        PIN_colnames = PIN_colnames_a + PIN_colnames_features + PIN_colnames_b#  + ['blah']            
+        PIN_colnames = PIN_colnames_a + PIN_colnames_features + PIN_colnames_b#  + ['blah']     
 
         #print(pin_df[PIN_colnames][pin_df[PIN_colnames].isnull().any(axis=1)])
 
+        if OUTPUT_TYPE == "PIN":
+            # write as tsv without index column
+            pin_df[PIN_colnames].to_csv(os.path.join(OUTPUT_DIR,'%s.pin'%key[1:]),sep='\t',index=False)
 
-        # write as tsv without index column
-        pin_df[PIN_colnames].to_csv(os.path.join(OUTPUT_DIR,'%s.pin'%key[1:]),sep='\t',index=False)
+        if OUTPUT_TYPE == "PEPREC":
+            peprec_df = pd.DataFrame()
+
+            peprec_df['spec_id'] = pin_df['SpecId']
+            peprec_df['modifications'] = '-'
+            peprec_df['peptide'] = pin_df['Peptide'].map(lambda x: x[2:-2])
+            peprec_df['charge'] = search_results['charge'].values
+
+            peprec_df.to_csv(os.path.join(OUTPUT_DIR,'%s.PEPREC'%key[1:]),sep='\t',index=False)

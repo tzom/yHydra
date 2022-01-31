@@ -106,7 +106,8 @@ with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
         if OUTPUT_TYPE == "PEPREC":
             peprec_df = pd.DataFrame()
 
-            peprec_df['spec_id'] = pin_df['SpecId']
+            spec_id_blueprint = "controllerType=0 controllerNumber=1 scan={0}"
+            peprec_df['spec_id'] = [spec_id_blueprint.format(*r) for r in search_results[['scan']].values.tolist()]
             peprec_df['modifications'] = '-'
             peprec_df['peptide'] = pin_df['Peptide'].map(lambda x: x[2:-2])
             peprec_df['charge'] = search_results['charge'].values

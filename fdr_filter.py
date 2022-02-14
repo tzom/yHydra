@@ -5,7 +5,7 @@ from tqdm import tqdm
 from pyteomics import auxiliary as aux
 import os
 from load_config import CONFIG
-
+import matplotlib.pyplot as plt
 #OUTPUT_DIR = args.OUTPUT_DIR
 #REV_OUTPUT_DIR = args.REV_OUTPUT_DIR
 
@@ -13,6 +13,7 @@ FDR = CONFIG['FDR']
 MIN_DELTA_MASS = CONFIG['MIN_DELTA_MASS']
 MAX_DELTA_MASS = CONFIG['MAX_DELTA_MASS']
 SAVE_DB_AS_JSON = True
+PLOT_SCOREDIST = True
 
 #search_results = pd.read_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
 # rev_search_results = pd.read_hdf(os.path.join(REV_OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
@@ -23,6 +24,15 @@ def fdr_filter():
     with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
         raw_files = store.keys()
         search_results = pd.concat([store[key] for key in raw_files])
+    
+    if PLOT_SCOREDIST:
+        x = search_results
+        x = x[x.best_score > 0.1]
+        plt.hist(x.best_score,label='targets+decoys',bins=100,alpha=0.1)
+        plt.hist(x[x.best_is_decoy].best_score,label='decoys',bins=100,alpha=0.5)
+        plt.hist(x[~x.best_is_decoy].best_score,label='targets',bins=100,alpha=0.5)
+        plt.legend()
+        plt.savefig('./figures/scoredist.png')
 
     # search_results['is_decoy'] = False
     # rev_search_results['is_decoy'] = True

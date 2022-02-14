@@ -50,7 +50,7 @@ def embed_db(REVERSE_DECOY=False):
             
     import multiprocessing
 
-    peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))#[:1000000]
+    peptides = np.load(os.path.join(DB_DIR,"peptides.npy"))
 
     #peptides = list(map(trim_sequence,tqdm(peptides)))
     #peptides = list(map(get_sequence_of_indices,tqdm(peptides)))
@@ -59,11 +59,6 @@ def embed_db(REVERSE_DECOY=False):
         peptides = p_b_map(trim_sequence,p,peptides,batch_size=BATCH_SIZE_PEPTIDES)
         peptides = p_b_map(get_sequence_of_indices,p,peptides,batch_size=BATCH_SIZE_PEPTIDES)
     
-    print('cast as numpy array...')
-    for _ in tqdm(range(1)):
-        peptides = np.array(peptides,dtype=np.int32)
-        print(peptides.shape)
-
     def get_dataset(peptides,batch_size=BATCH_SIZE_PEPTIDES):
         def peptide_generator():
             for i in range(0, len(peptides), batch_size):
@@ -72,17 +67,42 @@ def embed_db(REVERSE_DECOY=False):
         ds = ds.prefetch(AUTOTUNE)
         return ds
 
-    peptides_ds = get_dataset(peptides)
+    if False:
+        print('cast as numpy array...')
+        for _ in tqdm(range(1)):
+            peptides = np.array(peptides,dtype=np.int32)
+            print(peptides.shape)
 
-    print('iterate over tf dataset...')
-    for p in tqdm(peptides_ds):
-        pass
+        peptides_ds = get_dataset(peptides)
 
-    print('embed peptides...')
-    for _ in tqdm(range(1)):
-        embedded_peptides = sequence_embedder.predict(peptides_ds)
+        print('iterate over tf dataset...')
+        for p in tqdm(peptides_ds):
+            pass
 
-    print(len(embedded_peptides))
+        print('embed peptides...')
+        for _ in tqdm(range(1)):
+            embedded_peptides = sequence_embedder.predict(peptides_ds)
+    if True:
+        def batched_iterator(iterable, n=1):
+            l = len(iterable)
+            for _ in range(0, l, n):
+                yield iterable[_:min(_ + n, l)]
+
+        embedded_peptides = []
+        for p in tqdm(batched_iterator(peptides,BATCH_SIZE_PEPTIDES)):
+            embedded_batch = sequence_embedder.predict(p)
+            embedded_peptides.extend(embedded_batch)
+
+        print('cast as numpy array...')
+        for _ in tqdm(range(1)):
+            embedded_peptides = np.array(embedded_peptides,dtype=np.float32)
+            print(embedded_peptides.shape)
+            
+        print(len(embedded_peptides))
+
+    # for _ in tqdm(range(1)):
+    #     embedded_peptides = sequence_embedder.predict(peptides,batch_size=BATCH_SIZE_PEPTIDES)
+    # print(len(embedded_peptides))
 
     np.save(os.path.join(DB_DIR,"embedded_peptides.npy"),embedded_peptides)
     return None

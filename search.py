@@ -22,7 +22,7 @@ N_BUCKETS_NARROW = CONFIG['N_BUCKETS_NARROW']
 N_BUCKETS_OPEN = CONFIG['N_BUCKETS_OPEN']
 BATCH_SIZE = CONFIG['BATCH_SIZE']
 USE_STREAM = CONFIG['USE_STREAM']
-OPEN_SEARCH = True #TODO add to config
+OPEN_SEARCH = False #TODO add to config
 MIN_CHARGE = 2 #TODO add to config
 MAX_CHARGE = 5 #TODO add to config
 
@@ -44,11 +44,18 @@ decoy_db_peptides = np.load(os.path.join(DECOY_DB_DIR,"peptides.npy"))
 from mass_buckets import bucket_indices, get_peptide_mass, MIN_PEPTIDE_MASS, MAX_PEPTIDE_MASS, add_bucket_adress
 
 print('calc masses ...')
-db_target_decoy_peptides = np.concatenate([db_peptides,decoy_db_peptides])
-db_pepmasses = np.array(list(map(get_peptide_mass,tqdm(db_target_decoy_peptides))))
 
-_,est_open = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
-_,est_narrow = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
+for _ in tqdm(range(1)):
+    from pyteomics import cmass
+    db_target_decoy_peptides = np.concatenate([db_peptides,decoy_db_peptides])
+    gpm = lambda peptide: cmass.fast_mass(str(peptide),charge=0)
+    vgpm = np.vectorize(gpm)
+    db_pepmasses = vgpm(db_target_decoy_peptides)
+    #db_pepmasses = np.array(list(map(get_peptide_mass,tqdm(db_target_decoy_peptides))))
+
+if OPEN_SEARCH:
+    _,est_open = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
+#_,est_narrow = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_NARROW)
 
 
 #if __name__ == '__main__':
@@ -154,7 +161,7 @@ def search(MGF,
     # embedded_spectra_narrow = add_bucket_adress(embedded_spectra,true_pepmasses,est_narrow,0,N_BUCKETS=N_BUCKETS_NARROW)
 
     true_pepmasses = np.array(true_pepmasses)
-    db_narrow = np.concatenate([db,np.expand_dims(db_pepmasses,-1)],axis=-1).astype(np.float32)    
+    db_narrow = np.concatenate([db,np.expand_dims(db_pepmasses,-1)],axis=-1).astype(np.float32)   
     embedded_spectra_narrow = np.concatenate([embedded_spectra,np.expand_dims(true_pepmasses,-1)],axis=-1).astype(np.float32)
 
     ######### NARROW
@@ -163,10 +170,10 @@ def search(MGF,
     ######################################
     ######### OPEN
     #_,est_open = bucket_indices(db_pepmasses,'uniform',N_BUCKETS_OPEN)
+    if OPEN_SEARCH:
+        db_open = add_bucket_adress(db,db_pepmasses,est_open,N_BUCKETS=N_BUCKETS_OPEN)
 
-    db_open = add_bucket_adress(db,db_pepmasses,est_open,N_BUCKETS=N_BUCKETS_OPEN)
-    
-    embedded_spectra_open_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est_open,0,N_BUCKETS=N_BUCKETS_OPEN)
+        embedded_spectra_open_0 = add_bucket_adress(embedded_spectra,true_pepmasses,est_open,0,N_BUCKETS=N_BUCKETS_OPEN)
 
     #embedded_spectra_open_m1 = add_bucket_adress(embedded_spectra,true_pepmasses,est_open,-1,N_BUCKETS=N_BUCKETS_OPEN)
     #embedded_spectra_open_p1 = add_bucket_adress(embedded_spectra,true_pepmasses,est_open,+1,N_BUCKETS=N_BUCKETS_OPEN)

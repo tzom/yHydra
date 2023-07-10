@@ -7,6 +7,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 if GPU == '-1':
     os.environ["CUDA_VISIBLE_DEVICES"] = GPU
     import tensorflow as tf
+    #tf.compat.v1.disable_eager_execution()
+    # tf.config.optimizer.set_jit(True)
     device = '/CPU:0'
     use_gpu=False    
 else:
@@ -14,6 +16,7 @@ else:
     import tensorflow as tf
     device = '/GPU:0'
     physical_devices = tf.config.list_physical_devices('GPU')
+    print(physical_devices)
     tf.config.experimental.set_memory_growth(physical_devices[0],True)
     use_gpu=True
 

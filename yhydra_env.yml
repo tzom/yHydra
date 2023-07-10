@@ -17,7 +17,7 @@ dependencies:
   - scikit-learn
   - biopython
   - pandas
+  - matplotlib
   - tqdm
   - pyyaml
-  #- pytables
   - conda-forge::mono

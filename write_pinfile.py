@@ -1,5 +1,5 @@
 import pandas as pd
-import sys,os 
+import sys,os, glob
 os.environ['YHYDRA_CONFIG'] = sys.argv[1]
 from load_config import CONFIG
 import numpy as np
@@ -8,15 +8,32 @@ from tqdm import tqdm
 OUTPUT_DIR = CONFIG['RESULTS_DIR']
 SAVE_DB_AS_JSON = True#CONFIG['SAVE_DB_AS_JSON']
 
-OUTPUT_TYPE = "PIN" # "PIN" or "PEPREC"
+OUTPUT_TYPE = "LEVELS" # "PIN" or "PEPREC"
+
 
 with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
-    raw_files = store.keys()
-    print(raw_files)
-    for key in tqdm(raw_files):
+    chunks_per_raw_file_ = store.keys()
+    print(chunks_per_raw_file_)
+    chunks_per_raw_file = dict()
+    [chunks_per_raw_file.setdefault(x.split(':')[0],[]).append(x) for x in chunks_per_raw_file_]
+    print(chunks_per_raw_file)
+    
+    for key in chunks_per_raw_file.keys():
+        search_results = pd.concat([store[chunk] for chunk in chunks_per_raw_file[key]])
+
+    runs = glob.glob(os.path.join(OUTPUT_DIR,'*.search_results_scored.pkl'))
+    for run in runs:
+        search_results = pd.read_pickle(run)
+
         PIN_colnames_features = ['rank','best_score','best_distance','pepmass','delta_mass', 'peptide_length']
-        print('writing PIN-file for %s'%key)
-        search_results = store[key] 
+
+# with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
+#     raw_files = store.keys()
+#     print(raw_files)
+#     for key in tqdm(raw_files):
+#         PIN_colnames_features = ['rank','best_score','best_distance','pepmass','delta_mass', 'peptide_length']
+#         print('writing PIN-file for %s'%key)
+#         search_results = store[key] 
         
 
         if SAVE_DB_AS_JSON:
@@ -67,7 +84,7 @@ with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
         #### BUILD Peptide column
 
         pin_df['Peptide'] = search_results['best_peptide'].values
-        pin_df['Peptide'] = pin_df['Peptide'].apply(lambda x: 'X.'+x+'.X')
+        #pin_df['Peptide'] = pin_df['Peptide'].apply(lambda x: 'X.'+x+'.X')
 
         #### BUILD Protein column
 
@@ -98,6 +115,50 @@ with pd.HDFStore(os.path.join(OUTPUT_DIR,'search_results_scored.h5')) as store:
         PIN_colnames = PIN_colnames_a + PIN_colnames_features + PIN_colnames_b#  + ['blah']     
 
         #print(pin_df[PIN_colnames][pin_df[PIN_colnames].isnull().any(axis=1)])
+
+        if OUTPUT_TYPE == "LEVELS":
+            import mokapot            
+            from pyteomics import fasta
+            pin_df = pin_df[PIN_colnames]
+            pin_df['score'] = pin_df['best_score']
+            pin_df = pin_df[pin_df['score']>0.]
+            #pin_df = pin_df.drop(columns=['Proteins'])
+            psms = mokapot.read_pin(pin_df)
+
+            print(CONFIG['FASTA'], CONFIG['ENZYME'], CONFIG['MAX_MISSED_CLEAVAGES'],)
+            psms.data.Proteins = ""
+            fasta.write_decoy_db(glob.glob(CONFIG['FASTA'])[0],
+                "delete_me.fasta",
+                file_mode='w',
+                prefix="rev_")
+            proteins = mokapot.read_fasta(
+                "delete_me.fasta",
+                enzyme=".",
+                decoy_prefix="rev_",
+                missed_cleavages=CONFIG['MAX_MISSED_CLEAVAGES'],
+            )
+            # proteins = mokapot.read_fasta(
+            #     "/hpi/fs00/home/tom.altenburg/FASTA/target_decoy_UP000005640_9606.fasta",
+            #     enzyme="[KR]",
+            #     decoy_prefix="rev_",
+            #     missed_cleavages=CONFIG['MAX_MISSED_CLEAVAGES'],
+            # )
+            post_db = proteins.peptide_map.keys()
+            actual_db = ncbi_peptide_protein.keys()
+            search_peptides = psms.data.Peptide.to_list()
+            delta1=set.difference(set(actual_db),set(post_db))
+            delta2=set.difference(set(search_peptides),set(actual_db))
+            print(len(delta1))
+            print(len(delta2))
+            print(len(set.difference(set(actual_db),set(search_peptides))))
+            print(list(post_db)[:10],list(actual_db)[:10],search_peptides[:10])
+            print(list(delta1)[:10])
+            print(list(delta2)[:10])
+            psms.add_proteins(proteins)
+            print(psms.data)
+            results, models = mokapot.brew(psms, test_fdr=.01, folds=3, max_workers=64)
+            print(results)
+            
 
         if OUTPUT_TYPE == "PIN":
             # write as tsv without index column

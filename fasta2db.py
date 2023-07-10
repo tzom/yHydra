@@ -5,19 +5,23 @@ from pyteomics import mass,fasta
 import pyteomics.parser as pyt_parser
 import pandas as pd
 import numpy as np
+import multiprocessing
+from itertools import repeat
 import json,os
 from tqdm import tqdm
 
 from load_config import CONFIG
 
-MAX_DATABASE_SIZE=100000000
+MAX_DATABASE_SIZE=500*10**6
 DB_PEPTIDE_MINIMUM_LENGTH=CONFIG['DB_PEPTIDE_MINIMUM_LENGTH']#7
 DB_PEPTIDE_MAXIMUM_LENGTH=CONFIG['DB_PEPTIDE_MAXIMUM_LENGTH']#42
 MAX_MISSED_CLEAVAGES=CONFIG['MAX_MISSED_CLEAVAGES']#args.MAX_MISSED_CLEAVAGES
 ENZYME=CONFIG['ENZYME']
 SEMI_SPECIFIC_CLEAVAGE=CONFIG['SEMI_SPECIFIC_CLEAVAGE']
 SAVE=True
-SAVE_DB_AS_JSON=True
+SAVE_DB_AS_JSON=False
+
+aa_set = set(pyt_parser.std_amino_acids)
 
 if "r'" in ENZYME:
     ENZYME = ENZYME.replace("r'","") 
@@ -30,7 +34,8 @@ def add_check_keys_exising(key,dictionary,element):
         dictionary[key].add(element)
     else: 
         dictionary[key] = set([element])
-    return dictionary   
+    #return dictionary   
+    return None
 
 def cleave_peptide(protein_sequence):
     #return pyt_parser.cleave(protein_sequence, pyt_parser.expasy_rules['trypsin'],min_length=PEPTIDE_MINIMUM_LENGTH,missed_cleavages=MAX_MISSED_CLEAVAGES, semi=SEMI_SPECIFIC_CLEAVAGE)
@@ -62,8 +67,12 @@ def digest_seq_record(seq_record,fasta_type='generic'):
     LENGTH_CONDITION = lambda x: not (len(x) > DB_PEPTIDE_MAXIMUM_LENGTH or len(x) < DB_PEPTIDE_MINIMUM_LENGTH)
     cleaved_peptides = list(filter(LENGTH_CONDITION,cleaved_peptides))
 
-    ODD_AMINOACIDS_CONDITION = lambda x: not (len(set(x).intersection(set(['X','U','J','Z','B','O'])))>0)
+    #ODD_AMINOACIDS_CONDITION = lambda x: not (len(set(x).intersection(set(['X','U','J','Z','B','O'])))>0)
+    ODD_AMINOACIDS_CONDITION = lambda x: not (len(set(x).difference(aa_set))>0)
     cleaved_peptides = list(filter(ODD_AMINOACIDS_CONDITION,cleaved_peptides))
+
+    APPLY_AA_AMBIGUITY = lambda peptide: peptide.replace('L','I')
+    cleaved_peptides = list(map(APPLY_AA_AMBIGUITY,cleaved_peptides))
 
     accesion_id = HEADER.split()[0]
     return HEADER, accesion_id, cleaved_peptides
@@ -91,8 +100,21 @@ def digest_fasta(fasta_file,REVERSE_DECOY=False):
     print('Digesting peptides...')
 
     from multiprocessing.pool import Pool, ThreadPool
+    from collections import deque
 
-    with Pool() as p, ThreadPool() as tp:
+    # from multiprocessing import Manager    
+    # manager = Manager()
+    # ncbi_peptide_protein = manager.dict()
+
+    global add_check_keys_exising_global
+    def add_check_keys_exising_global(x):
+        _, accesion_id, cleaved_peptides = x
+        #list(map(lambda peptide: add_check_keys_exising(peptide,ncbi_peptide_protein,accesion_id),cleaved_peptides))
+        ncbi_peptide_protein.update(dict.fromkeys(cleaved_peptides, accesion_id))
+        return None
+
+    #with ThreadPool() as p:
+    with multiprocessing.Pool(64,maxtasksperchild=300) as p:
         
         if '.gz' in FASTA_FILE:
             handle = gzip.open(FASTA_FILE, "rt")
@@ -105,15 +127,18 @@ def digest_fasta(fasta_file,REVERSE_DECOY=False):
             else:
                 FASTA_FILE = fasta.read(FASTA_FILE)
             #seqio = SeqIO.parse(FASTA_FILE, "fasta")
-            for seq_record in tqdm(p.map(digest_seq_record,FASTA_FILE)):
+            seq_records = list(p.imap(digest_seq_record,tqdm(FASTA_FILE)))
+
+            deque(map(add_check_keys_exising_global,tqdm(seq_records)))
+
                 #ID = seq_record.id
                 #HEADER = seq_record.description
                 #SEQ = str(seq_record.seq)
 
 
-                HEADER, accesion_id, cleaved_peptides = seq_record
+                #HEADER, accesion_id, cleaved_peptides = seq_record
 
-                list(map(lambda peptide: add_check_keys_exising(peptide,ncbi_peptide_protein,accesion_id),cleaved_peptides))
+                #list(map(lambda peptide: add_check_keys_exising(peptide,ncbi_peptide_protein,accesion_id),cleaved_peptides))
 
                 # for peptide in cleaved_peptides:
 
@@ -121,9 +146,9 @@ def digest_fasta(fasta_file,REVERSE_DECOY=False):
 
                 #     add_check_keys_exising(peptide,ncbi_peptide_protein,accesion_id)
 
-                if len(ncbi_peptide_protein) > MAX_DATABASE_SIZE:
-                    print('exceeding maximum number of allowd peptides %s'%MAX_DATABASE_SIZE)
-                    break
+                # if len(ncbi_peptide_protein) > MAX_DATABASE_SIZE:
+                #     print('exceeding maximum number of allowd peptides %s'%MAX_DATABASE_SIZE)
+                #     break
 
     print('Done.')
     print(len(ncbi_peptide_protein))
@@ -143,5 +168,5 @@ def digest_fasta(fasta_file,REVERSE_DECOY=False):
         #embeddings = list(map(seq_embedder,tqdm(peptides)))
         print('Done.')
 
-    return ncbi_peptide_protein
-
+    #return ncbi_peptide_protein
+    return

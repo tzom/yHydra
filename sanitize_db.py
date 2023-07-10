@@ -18,7 +18,6 @@ def sanitize_db(DB_DIR=DB_DIR,DECOY_DB_DIR=DECOY_DB_DIR):
     sanitized_decoy_db_peptides = decoy_db_peptides_set - intersection
 
     print('N peptides in DB: %s'%len(db_peptides))
-    print('N peptides in decoy DB: %s'%len(decoy_db_peptides_set))
     print('N peptides in decoy DB: %s'%len(decoy_db_peptides))
     print('N shared peptides removed from decoy DB: %s'%len(intersection))
 

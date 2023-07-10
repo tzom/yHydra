@@ -1,5 +1,5 @@
 # Input - File Locations
-FASTA: example/*.fasta.gz
+FASTA: example/*.fasta
 RAWs: example/*.raw
 
 # Output - Results directory
@@ -10,7 +10,7 @@ BATCH_SIZE: 64
 BATCH_SIZE_PEPTIDES: 4096
 NUMBER_OF_THREADS: 64
 USE_STREAM: FALSE
-GPU: 0
+GPU: -1
 
 # Preprocessing Parameters
 MAX_N_PEAKS: 100

@@ -13,28 +13,52 @@ USE_STREAM: FALSE
 GPU: -1
 
 # Preprocessing Parameters
-MAX_N_PEAKS: 100
+MAX_N_PEAKS: 200
 NORMALIZATION_METHOD: L2
 
 # Search Parameters
 DB_PEPTIDE_MINIMUM_LENGTH: 7
 DB_PEPTIDE_MAXIMUM_LENGTH: 42
-MAX_MISSED_CLEAVAGES: 1
-ENZYME: trypsin
+MAX_MISSED_CLEAVAGES: 2
+#ENZYME: r'[KR]'
+ENZYME: 'trypsin'
 SEMI_SPECIFIC_CLEAVAGE: False
-K: 50
+K: 100
+MIN_CHARGE: 2
+MAX_CHARGE: 5
 MIN_PEPTIDE_MASS: 500.
 MAX_PEPTIDE_MASS: 5000.
-N_BUCKETS_NARROW: 2250
-N_BUCKETS_OPEN: 12
+MS1_TOLERANCE: 20
+MS1_USE_PPM: True
+OPEN_SEARCH: True
 
 # Scoring Parameters
 FDR: 0.01
 MAX_N_FRAGMENTS: 200
 TOLERANCE_DALTON: 0.01
+MS2_TOLERANCE: 20
+MS2_USE_PPM: True
 MIN_MATCHING_PEAKS : 4
 MIN_DELTA_MASS: -150.
 MAX_DELTA_MASS: 500.
+
+# Modifications
+var_mods: {
+  'M': ['ox','Oxidation'],
+  }
+nterm_var_mods: {
+  # 'Q': ['pyq-','Gln->pyro-Glu'],
+  # 'E': ['pye-','Glu->pyro-Glu'],
+  }
+### '*' wildcard for any amino acid
+cterm_var_mods: {
+  # '*': ['-amid','Amidated'], 
+  }
+fixed_mods: {
+  'C': ['ca','Carbamidomethyl'],
+  }  
+MAX_SITES_PER_MOD: 3
+MAX_N_ISOFORMS_PER_PEPTIDE: 3
 
 # Essential Parameters [do not change]
 PEPTIDE_MINIMUM_LENGTH: 7

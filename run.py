@@ -9,25 +9,25 @@ import glob
 RAWs = glob.glob(CONFIG['RAWs'])
 FASTA = glob.glob(CONFIG['FASTA'])[0] 
 
-# from fasta2db import digest_fasta
-# digest_fasta(FASTA,REVERSE_DECOY=False)
-# digest_fasta(FASTA,REVERSE_DECOY=True)
+from fasta2db import digest_fasta
+digest_fasta(FASTA,REVERSE_DECOY=False)
+digest_fasta(FASTA,REVERSE_DECOY=True)
 
-# from sanitize_db import sanitize_db
-# sanitize_db()
+from sanitize_db import sanitize_db
+sanitize_db()
 
-# from embed_db import embed_db
-# embed_db(REVERSE_DECOY=False)
-# embed_db(REVERSE_DECOY=True)
+from embed_db import embed_db
+embed_db(REVERSE_DECOY=False)
+embed_db(REVERSE_DECOY=True)
 
-# from calc_masses_db import calc_masses
-# calc_masses(REVERSE_DECOY=False)
-# calc_masses(REVERSE_DECOY=True)
-# import gc
-# gc.collect()
+from calc_masses_db import calc_masses
+calc_masses(REVERSE_DECOY=False)
+calc_masses(REVERSE_DECOY=True)
+import gc
+gc.collect()
 
-# # # from pyThermoRawFileParser import parse_rawfiles
-# # # raw = parse_rawfiles(RAWs)
+from pyThermoRawFileParser import parse_rawfiles
+raw = parse_rawfiles(RAWs)
 
 from search import search
 [search(RAW.replace('.raw','.mgf')) for RAW in RAWs]

@@ -265,7 +265,8 @@ def search(MGF,
 
     embedded_spectra = embedded_spectra
 
-    from sklearn.neighbors import NearestNeighbors
+    
+    #from sklearn.neighbors import NearestNeighbors
     import faiss
 
     #query = embedded_peptides

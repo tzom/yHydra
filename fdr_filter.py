@@ -5,7 +5,7 @@ from tqdm import tqdm
 from pyteomics import auxiliary as aux
 import os, glob
 from load_config import CONFIG
-import matplotlib.pyplot as plt
+
 #OUTPUT_DIR = args.OUTPUT_DIR
 #REV_OUTPUT_DIR = args.REV_OUTPUT_DIR
 
@@ -58,6 +58,7 @@ def fdr_filter():
     print(df_filtered)
 
     if PLOT_SCOREDIST:
+        import matplotlib.pyplot as plt
         plt.title("N identified peptides: %s"%len(df_filtered))
         x = df
         x.best_score = -x.best_score

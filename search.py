@@ -37,7 +37,8 @@ MIN_CHARGE = CONFIG['MIN_CHARGE']#2 #TODO add to config
 MAX_CHARGE = CONFIG['MAX_CHARGE']#5 #TODO add to config
 MIN_PEPTIDE_MASS = CONFIG['MIN_PEPTIDE_MASS']#500
 MAX_PEPTIDE_MASS = CONFIG['MAX_PEPTIDE_MASS']#5000
-USE_CHARGE = True
+PAD_N_PEAKS = 500
+USE_CHARGE = False
 
 AUTOTUNE=tf.data.AUTOTUNE
 
@@ -185,7 +186,7 @@ def search(MGF,
         #intensities = np.array(intensities)            
         mzs_, intensities_ = mzs,normalize_intensities(intensities,method=NORMALIZATION_METHOD)
         #mzs_, intensities_ = remove_precursor(mzs_, intensities_, float(spectrum['precursorMZ']))
-        mzs_, intensities_ = trim_peaks_list_v2(mzs_, intensities_, MAX_N_PEAKS=MAX_N_PEAKS, PAD_N_PEAKS=200)
+        mzs_, intensities_ = trim_peaks_list_v2(mzs_, intensities_, MAX_N_PEAKS=MAX_N_PEAKS, PAD_N_PEAKS=PAD_N_PEAKS)
         preprocessed_spectrum = np.stack((mzs_, intensities_),axis=-1)
         
 
@@ -515,7 +516,7 @@ def search(MGF,
             #exclude_slices = np.r_[(*exclude_slices,)].astype(np.int32)
             if not open_search:
                 return db_index[left:right]
-            print(left,right, right-left)
+            #print(left,right, right-left)
             #return db_index[left:right]
             starts,stops = unzip_slices(exclude_slices)
             new_start = [left] + list(stops)
@@ -523,7 +524,7 @@ def search(MGF,
             new_slices = zip_slices(new_start,new_stops)
             new_slices = ['0'] + new_slices
             include_slices = np.r_[(*new_slices,)].astype(np.int32)
-            print(len(include_slices))
+            #print(len(include_slices))
 
             #assert is_sorted(include_slices), 'include_slices not sorted %s %s'%(include_slices,exclude_slices)
             #assert is_sorted(exclude_slices), 'exclude_slices not sorted'

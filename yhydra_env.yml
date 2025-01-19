@@ -11,12 +11,14 @@ dependencies:
   - pip:
     - tensorflow-gpu==2.4
     - pyteomics.cythonize
+    - numba==0.55.1
+    - pandas==1.4.1
+    - ms_deisotope
     - lxml
     - tables
   - pytorch::faiss-gpu>=1.7
   - scikit-learn
-  - biopython
-  - pandas
+  - biopython  
   - matplotlib
   - tqdm
   - pyyaml

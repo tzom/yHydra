@@ -2,11 +2,12 @@ import os
 import tensorflow as tf
 from load_config import CONFIG
 
-USE_CHARGE=True
-#model_dir = './saved_27_06_2021'
-model_dir = "/hpi/fs00/home/tom.altenburg/projects/yHydra_train/non_tryptic_weigths/saved_23_03_2022"
+USE_CHARGE=False
+model_dir = './saved_27_06_2021'
+#model_dir = "/hpi/fs00/home/tom.altenburg/projects/yHydra_train/non_tryptic_weigths/saved_23_03_2022"
 if "USE_TIMSTOF" in CONFIG.keys():
-    model_dir = "/hpi/fs00/home/tom.altenburg/projects/yHydra_train/non_tryptic_weigths/yhydra_charge_nontryptic"
+  USE_CHARGE=True
+  model_dir = "/hpi/fs00/home/tom.altenburg/projects/yHydra_train/non_tryptic_weigths/yhydra_charge_nontryptic"
 
 if not os.path.exists(model_dir):
     os.system("tar -xvf %s"%model_dir+'.tar.gz')

@@ -324,12 +324,12 @@ def search_score(OUTPUT_DIR=OUTPUT_DIR):
         all_peptides = top_peptides
         search_results['peptide_mass']= list(map(lambda x: theoretical_peptide_mass(*x),zip(all_peptides,np.zeros_like(all_peptides))))
         search_results['delta_mass']=search_results['pepmass'] - search_results['peptide_mass']
-        print(len(search_results))
+        #print(len(search_results))
         search_results=search_results.drop(columns=['mzs', 'intensities','is_decoy'])
-        print(sum(search_results['best_peptide']==search_results['peptide'])/len(search_results))
+        #print(sum(search_results['best_peptide']==search_results['peptide'])/len(search_results))
 
-        print(search_results)
-        print(search_results.columns)
+        #print(search_results)
+        #print(search_results.columns)
 
         print(os.path.join(OUTPUT_DIR,'%s.search_results_scored.pkl'%raw_file))
         search_results.to_pickle(os.path.join(OUTPUT_DIR,'%s.search_results_scored.pkl'%raw_file))

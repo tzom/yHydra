@@ -13,7 +13,7 @@ FDR = CONFIG['FDR']
 MIN_DELTA_MASS = CONFIG['MIN_DELTA_MASS']
 MAX_DELTA_MASS = CONFIG['MAX_DELTA_MASS']
 SAVE_DB_AS_JSON = False
-PLOT_SCOREDIST = True
+PLOT_SCOREDIST = False
 
 #search_results = pd.read_hdf(os.path.join(OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
 # rev_search_results = pd.read_hdf(os.path.join(REV_OUTPUT_DIR,'search_results_scored.h5'),'search_results_scored')
@@ -49,12 +49,16 @@ def fdr_filter():
     # df_filtered = df[df.best_score>5.0]
     # df_filtered = df_filtered[~df_filtered.best_is_decoy]
 
-    yhydra_ident_peptides=set(df_filtered.best_peptide.unique())
+    #yhydra_ident_peptides=set(df_filtered.best_peptide.unique())
+    
     print('Identified PSMs (yHydra):',len(df_filtered))
-    print('Identified peptides (yHydra):',len(yhydra_ident_peptides))
+    df = df.sort_values(by=['best_score'])[::-1]
+    df_filtered = df_filtered.drop_duplicates(subset=['best_peptide'],keep='first')
+    print('Identified peptides (yHydra):',len(df_filtered))
+    print(df_filtered)
 
     if PLOT_SCOREDIST:
-        plt.title("N identified peptides: %s"%len(yhydra_ident_peptides))
+        plt.title("N identified peptides: %s"%len(df_filtered))
         x = df
         x.best_score = -x.best_score
         x = x[x.best_score > 0.0]
